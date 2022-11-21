@@ -130,7 +130,9 @@ void CustomTradeSpi::OnRspQryInstrument(
 		std::cout << "到期日： " << pInstrument->EndDelivDate << std::endl;
 		std::cout << "当前交易状态： " << pInstrument->IsTrading << std::endl;
 		// 请求查询投资者资金账户
-		reqQueryTradingAccount();
+		if (bIsLast) {
+			reqQueryTradingAccount();
+		}
 	}
 }
 
@@ -335,7 +337,7 @@ void CustomTradeSpi::reqQueryTradingAccount()
 	strcpy(tradingAccountReq.InvestorID, gInvesterID);
 	strcpy_s(tradingAccountReq.CurrencyID, "CNY");
 	static int requestID = 0; // 请求编号
-	std::this_thread::sleep_for(std::chrono::milliseconds(700)); // 有时候需要停顿一会才能查询成功
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 有时候需要停顿一会才能查询成功
 	int rt = g_pTradeUserApi->ReqQryTradingAccount(&tradingAccountReq, requestID);
 	if (!rt)
 		std::cout << ">>>>>>发送投资者资金账户查询请求成功" << std::endl;
