@@ -9,6 +9,10 @@ public:
 	///当客户端与交易后台建立起通信连接时（还未登录前），该方法被调用。
 	void OnFrontConnected();
 
+	///客户端认证响应
+	void OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthenticateField, CThostFtdcRspInfoField *pRspInfo,
+		int nRequestID, bool bIsLast);
+
 	///登录请求响应
 	void OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
 
@@ -57,6 +61,7 @@ public:
 		TThostFtdcVolumeType volume,
 		TThostFtdcDirectionType direction); // 个性化报单录入，外部调用
 private:
+	void reqAuthenticate();
 	void reqUserLogin(); // 登录请求
 	void reqUserLogout(); // 登出请求
 	void reqSettlementInfoConfirm(); // 投资者结果确认

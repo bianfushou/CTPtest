@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
+#include <string>
 #include "CustomMdSpi.h"
 #include "TickToKlineHelper.h"
 
@@ -112,8 +113,7 @@ void CustomMdSpi::OnRspSubMarketData(
 		std::cout << "=====订阅行情成功=====" << std::endl;
 		std::cout << "合约代码： " << pSpecificInstrument->InstrumentID << std::endl;
 		// 如果需要存入文件或者数据库，在这里创建表头,不同的合约单独存储
-		char filePath[100] = {'\0'};
-		sprintf(filePath, "%s_market_data.csv", pSpecificInstrument->InstrumentID);
+		std::string filePath = std::string(pSpecificInstrument->InstrumentID) + "_market_data.csv";
 		std::ofstream outFile;
 		outFile.open(filePath, std::ios::out); // 新开文件
 		outFile << "合约代码" << ","
@@ -192,8 +192,7 @@ void CustomMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	std::cout << "最新价： " << pDepthMarketData->LastPrice << std::endl;
 	std::cout << "数量： " << pDepthMarketData->Volume << std::endl;
 	// 如果只获取某一个合约行情，可以逐tick地存入文件或数据库
-	char filePath[100] = {'\0'};
-	sprintf(filePath, "%s_market_data.csv", pDepthMarketData->InstrumentID);
+	std::string filePath = std::string(pDepthMarketData->InstrumentID) + "_market_data.csv";
 	std::ofstream outFile;
 	outFile.open(filePath, std::ios::app); // 文件追加写入 
 	outFile << pDepthMarketData->InstrumentID << "," 

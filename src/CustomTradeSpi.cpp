@@ -14,6 +14,8 @@ extern char gTradeFrontAddr[];                                // Ä£Äâ½»Ò×Ç°ÖÃµØÖ
 extern TThostFtdcInstrumentIDType g_pTradeInstrumentID;       // Ëù½»Ò×µÄºÏÔ¼´úÂë
 extern TThostFtdcDirectionType gTradeDirection;               // ÂòÂô·½Ïò
 extern TThostFtdcPriceType gLimitPrice;                       // ½»Ò×¼Û¸ñ
+extern TThostFtdcAuthCodeType gChAuthCode;                    //ÈÏÖ¤Âë
+extern TThostFtdcAppIDType	gChAppID;
 
 // »á»°²ÎÊı
 TThostFtdcFrontIDType	trade_front_id;	//Ç°ÖÃ±àºÅ
@@ -27,8 +29,17 @@ time_t lOrderOkTime;
 void CustomTradeSpi::OnFrontConnected()
 {
 	std::cout << "=====½¨Á¢ÍøÂçÁ¬½Ó³É¹¦=====" << std::endl;
-	// ¿ªÊ¼µÇÂ¼
-	reqUserLogin();
+	reqAuthenticate();
+}
+
+void CustomTradeSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthenticateField, CThostFtdcRspInfoField *pRspInfo,
+	int nRequestID, bool bIsLast) {
+	if (!isErrorRspInfo(pRspInfo))
+	{
+		std::cout << "=====ÕË»§ÈÏÖ¤³É¹¦=====" << std::endl;
+		// ¿ªÊ¼µÇÂ¼
+		reqUserLogin();
+	}
 }
 
 void CustomTradeSpi::OnRspUserLogin(
@@ -244,6 +255,21 @@ bool CustomTradeSpi::isErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
 	return bResult;
 }
 
+void CustomTradeSpi::reqAuthenticate() {
+	CThostFtdcReqAuthenticateField auth = { 0 };
+	strcpy_s(auth.BrokerID, gBrokerID);
+	strcpy_s(auth.UserID, gInvesterID);
+	//strcpy_s(a.UserProductInfo, "");
+	strcpy_s(auth.AuthCode, gChAuthCode);
+	strcpy_s(auth.AppID, gChAppID);
+	static int requestID = 0; // ÇëÇó±àºÅ
+	int rt = g_pTradeUserApi->ReqAuthenticate(&auth, requestID);
+	if (!rt)
+		std::cout << ">>>>>>·¢ËÍÈÏÖ¤ÇëÇó³É¹¦" << std::endl;
+	else
+		std::cerr << "--->>>·¢ËÍÈÏÖ¤ÇëÇóÊ§°Ü" << std::endl;
+}
+
 void CustomTradeSpi::reqUserLogin()
 {
 	CThostFtdcReqUserLoginField loginReq;
@@ -307,6 +333,7 @@ void CustomTradeSpi::reqQueryTradingAccount()
 	memset(&tradingAccountReq, 0, sizeof(tradingAccountReq));
 	strcpy(tradingAccountReq.BrokerID, gBrokerID);
 	strcpy(tradingAccountReq.InvestorID, gInvesterID);
+	strcpy_s(tradingAccountReq.CurrencyID, "CNY");
 	static int requestID = 0; // ÇëÇó±àºÅ
 	std::this_thread::sleep_for(std::chrono::milliseconds(700)); // ÓĞÊ±ºòĞèÒªÍ£¶ÙÒ»»á²ÅÄÜ²éÑ¯³É¹¦
 	int rt = g_pTradeUserApi->ReqQryTradingAccount(&tradingAccountReq, requestID);
