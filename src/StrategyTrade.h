@@ -19,3 +19,16 @@ using ReqOrderInsertFunctionType = std::function<
 	TThostFtdcDirectionType direction)>;
 
 void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeSpi *customTradeSpi);
+
+
+class Strategy {
+public:
+	enum Type {
+		open, high, low, close
+	};
+	void PivotReversalStrategy(TThostFtdcInstrumentIDType instrumentID, CustomTradeSpi *customTradeSpi);
+private:
+
+	double pivot(Strategy::Type type, int left, int right);
+};
+

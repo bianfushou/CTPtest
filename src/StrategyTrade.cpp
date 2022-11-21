@@ -28,3 +28,12 @@ void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeS
 			customTradeSpi->reqOrderInsert(instrumentID, priceVec[len - 1], 1, THOST_FTDC_D_Sell);
 	}
 }
+
+void Strategy::PivotReversalStrategy(TThostFtdcInstrumentIDType instrumentID, CustomTradeSpi *customTradeSpi)
+{
+
+}
+
+double Strategy::pivot(Strategy::Type type, int left, int right) {
+	return 0.0;
+}
