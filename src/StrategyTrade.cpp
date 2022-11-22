@@ -29,11 +29,86 @@ void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeS
 	}
 }
 
-void Strategy::PivotReversalStrategy(TThostFtdcInstrumentIDType instrumentID, CustomTradeSpi *customTradeSpi)
+void Strategy::PivotReversalStrategy()
 {
+	std::lock_guard<std::mutex> lk(marketDataMutex);
+	double swh = pivot(Strategy::Type::high);
+	double swl = pivot(Strategy::Type::low);
+	if (swh <= 0.0) {
+		swh = highPivotQue.back();
+	}
 
+	if (swl <= 0.0) {
+		swl = lowPivotQue.back();
+	}
+	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
+	//if(tickToKlineObject.lastPrice > )
 }
 
-double Strategy::pivot(Strategy::Type type, int left, int right) {
-	return 0.0;
+double Strategy::pivot(Strategy::Type type) {
+	int range = left + right;
+	std::vector<double> pivotArray;
+	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
+	if (tickToKlineObject.m_KLineDataArray.size() < range) {
+		return 0.0;
+	}
+	bool isMin = false;
+	switch (type) {
+	case Strategy::Type::high:
+	{
+		int i = range;
+		for (auto it = tickToKlineObject.m_KLineDataArray.rbegin(); i > 0; i--, it++) {
+			pivotArray.push_back(it->high_price);
+		}
+		break;
+	}
+	case Strategy::Type::low:
+	{
+		int i = range;
+		for (auto it = tickToKlineObject.m_KLineDataArray.rbegin(); i > 0; i--, it++) {
+			pivotArray.push_back(it->low_price);
+		}
+		isMin = true;
+		break;
+	}
+	case Strategy::Type::open:
+		break;
+	case Strategy::Type::close:
+		break;
+	}
+	double pivotVal = pivotArray[right];
+	for (int i = 0; i < range; i++) {
+		if (i < right) {
+			if (isMin) {
+				if (pivotVal >= pivotArray[i] || fabs(pivotVal - pivotArray[i]) < 0.0005) {
+					return 0.0;
+				}
+			}
+			else {
+				if (pivotVal <= pivotArray[i]|| fabs(pivotVal - pivotArray[i]) < 0.0005) {
+					return 0.0;
+				}
+			}
+		}
+		else if (i > right) {
+			if (isMin) {
+				if (pivotVal > pivotArray[i]) {
+					return 0.0;
+				}
+			}
+			else {
+				if (pivotVal < pivotArray[i]) {
+					return 0.0;
+				}
+			}
+		}
+	}
+	if (!isMin) {
+		highPivotQue.push_back(pivotVal);
+	}
+	else {
+		lowPivotQue.push_back(pivotVal);
+	}
+	
+	return pivotVal;
 }

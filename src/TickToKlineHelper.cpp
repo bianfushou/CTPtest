@@ -101,4 +101,5 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 		m_priceVec.clear();
 		m_volumeVec.clear();
 	}
+	lastPrice = pDepthMarketData->LastPrice;
 }
