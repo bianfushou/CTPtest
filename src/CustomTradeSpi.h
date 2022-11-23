@@ -60,6 +60,7 @@ public:
 		TThostFtdcPriceType price,
 		TThostFtdcVolumeType volume,
 		TThostFtdcDirectionType direction); // 个性化报单录入，外部调用
+	void reqOrder(CThostFtdcInputOrderField& orderInsertReq, bool isDefault = true);
 private:
 	void reqAuthenticate();
 	void reqUserLogin(); // 登录请求

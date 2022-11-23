@@ -42,7 +42,76 @@ void Strategy::PivotReversalStrategy()
 		swl = lowPivotQue.back();
 	}
 	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
-	//if(tickToKlineObject.lastPrice > )
+	if (tickToKlineObject.lastPrice > swh) {
+		if (status == 0) {
+			CThostFtdcInputOrderField orderInsertReq;
+			memset(&orderInsertReq, 0, sizeof(orderInsertReq));
+			strcpy(orderInsertReq.InstrumentID, instrumentID.c_str());
+			orderInsertReq.Direction = THOST_FTDC_D_Buy;
+			orderInsertReq.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
+			orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
+			orderInsertReq.VolumeTotalOriginal = volume;
+			customTradeSpi->reqOrder(orderInsertReq);
+		}
+		else if (status == 2) {
+			{
+				CThostFtdcInputOrderField orderInsertReq;
+				memset(&orderInsertReq, 0, sizeof(orderInsertReq));
+				strcpy(orderInsertReq.InstrumentID, instrumentID.c_str());
+				orderInsertReq.Direction = THOST_FTDC_D_Sell;
+				orderInsertReq.CombOffsetFlag[0] = THOST_FTDC_OF_Close;
+				orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
+				orderInsertReq.VolumeTotalOriginal = volume;
+				customTradeSpi->reqOrder(orderInsertReq);
+			}
+			{
+				CThostFtdcInputOrderField orderInsertReq;
+				memset(&orderInsertReq, 0, sizeof(orderInsertReq));
+				strcpy(orderInsertReq.InstrumentID, instrumentID.c_str());
+				orderInsertReq.Direction = THOST_FTDC_D_Buy;
+				orderInsertReq.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
+				orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
+				orderInsertReq.VolumeTotalOriginal = volume;
+				customTradeSpi->reqOrder(orderInsertReq);
+			}
+			
+		}
+	}
+	if (tickToKlineObject.lastPrice < swl) {
+		if (status == 0) {
+			CThostFtdcInputOrderField orderInsertReq;
+			memset(&orderInsertReq, 0, sizeof(orderInsertReq));
+			strcpy(orderInsertReq.InstrumentID, instrumentID.c_str());
+			orderInsertReq.Direction = THOST_FTDC_D_Sell;
+			orderInsertReq.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
+			orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
+			orderInsertReq.VolumeTotalOriginal = volume;
+			customTradeSpi->reqOrder(orderInsertReq);
+		}
+		else if (status == 1) {
+			{
+				CThostFtdcInputOrderField orderInsertReq;
+				memset(&orderInsertReq, 0, sizeof(orderInsertReq));
+				strcpy(orderInsertReq.InstrumentID, instrumentID.c_str());
+				orderInsertReq.Direction = THOST_FTDC_D_Buy;
+				orderInsertReq.CombOffsetFlag[0] = THOST_FTDC_OF_Close;
+				orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
+				orderInsertReq.VolumeTotalOriginal = volume;
+				customTradeSpi->reqOrder(orderInsertReq);
+			}
+			{
+				CThostFtdcInputOrderField orderInsertReq;
+				memset(&orderInsertReq, 0, sizeof(orderInsertReq));
+				strcpy(orderInsertReq.InstrumentID, instrumentID.c_str());
+				orderInsertReq.Direction = THOST_FTDC_D_Sell;
+				orderInsertReq.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
+				orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
+				orderInsertReq.VolumeTotalOriginal = volume;
+				customTradeSpi->reqOrder(orderInsertReq);
+			}
+
+		}
+	}
 }
 
 double Strategy::pivot(Strategy::Type type) {
