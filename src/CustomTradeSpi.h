@@ -1,6 +1,7 @@
 #pragma once
 // ---- 派生的交易类 ---- //
 #include "CTP_API/ThostFtdcTraderApi.h"
+#include "log.h"
 
 class CustomTradeSpi : public CThostFtdcTraderSpi
 {
@@ -75,4 +76,6 @@ private:
 	bool isErrorRspInfo(CThostFtdcRspInfoField *pRspInfo); // 是否收到错误信息
 	bool isMyOrder(CThostFtdcOrderField *pOrder); // 是否我的报单回报
 	bool isTradingOrder(CThostFtdcOrderField *pOrder); // 是否正在交易的报单
+
+	Logger* tradeLog = nullptr;
 };

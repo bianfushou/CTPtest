@@ -3,10 +3,12 @@
 #include <unordered_map>
 #include <thread>
 #include <mutex>
+#include <memory>
 #include "StrategyTrade.h"
 #include "CustomTradeSpi.h"
 
 extern std::unordered_map<std::string, TickToKlineHelper> g_KlineHash;
+
 
 // œﬂ≥Ãª•≥‚¡ø
 std::mutex marketDataMutex;
@@ -29,7 +31,7 @@ void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeS
 	}
 }
 
-void Strategy::PivotReversalStrategy()
+void PivotReversalStrategy::operator()()
 {
 	std::lock_guard<std::mutex> lk(marketDataMutex);
 	double swh = pivot(Strategy::Type::high);
@@ -114,7 +116,7 @@ void Strategy::PivotReversalStrategy()
 	}
 }
 
-double Strategy::pivot(Strategy::Type type) {
+double PivotReversalStrategy::pivot(Strategy::Type type) {
 	int range = left + right;
 	std::vector<double> pivotArray;
 	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);

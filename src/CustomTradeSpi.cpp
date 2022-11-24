@@ -2,6 +2,7 @@
 #include <time.h>
 #include <thread>
 #include <chrono>
+#include <unordered_map>
 #include "CustomTradeSpi.h"
 #include "StrategyTrade.h"
 
@@ -16,6 +17,8 @@ extern TThostFtdcDirectionType gTradeDirection;               // 买卖方向
 extern TThostFtdcPriceType gLimitPrice;                       // 交易价格
 extern TThostFtdcAuthCodeType gChAuthCode;                    //认证码
 extern TThostFtdcAppIDType	gChAppID;
+extern std::unordered_map<std::string, std::shared_ptr<Strategy>> g_StrategyMap;
+
 
 // 会话参数
 TThostFtdcFrontIDType	trade_front_id;	//前置编号
@@ -28,7 +31,12 @@ time_t lOrderOkTime;
 
 void CustomTradeSpi::OnFrontConnected()
 {
-	std::cout << "=====建立网络连接成功=====" << std::endl;
+	if (!tradeLog) {
+		std::string fileName = Logger::initFileName("CustomTrade");
+		tradeLog = new Logger(fileName);
+	}
+	bool open = tradeLog->logIsOpen();
+	tradeLog->logInfo( "=====建立网络连接成功=====");
 	reqAuthenticate();
 }
 
@@ -36,7 +44,7 @@ void CustomTradeSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthe
 	int nRequestID, bool bIsLast) {
 	if (!isErrorRspInfo(pRspInfo))
 	{
-		std::cout << "=====账户认证成功=====" << std::endl;
+		tradeLog->logInfo("=====账户认证成功=====" );
 		// 开始登录
 		reqUserLogin();
 	}
@@ -50,12 +58,16 @@ void CustomTradeSpi::OnRspUserLogin(
 {
 	if (!isErrorRspInfo(pRspInfo))
 	{
-		std::cout << "=====账户登录成功=====" << std::endl;
+		tradeLog->logInfo("=====账户登录成功=====" );
 		loginFlag = true;
-		std::cout << "交易日： " << pRspUserLogin->TradingDay << std::endl;
-		std::cout << "登录时间： " << pRspUserLogin->LoginTime << std::endl;
-		std::cout << "经纪商： " << pRspUserLogin->BrokerID << std::endl;
-		std::cout << "帐户名： " << pRspUserLogin->UserID << std::endl;
+		tradeLog->stringLog << "交易日： " << pRspUserLogin->TradingDay;
+		tradeLog->logInfo();
+		tradeLog->stringLog << "登录时间： " << pRspUserLogin->LoginTime;
+		tradeLog->logInfo();
+		tradeLog->stringLog << "经纪商： " << pRspUserLogin->BrokerID ;
+		tradeLog->logInfo();
+		tradeLog->stringLog << "帐户名： " << pRspUserLogin->UserID;
+		tradeLog->logInfo();
 		// 保存会话参数
 		trade_front_id = pRspUserLogin->FrontID;
 		session_id = pRspUserLogin->SessionID;
@@ -73,14 +85,16 @@ void CustomTradeSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID
 
 void CustomTradeSpi::OnFrontDisconnected(int nReason)
 {
-	std::cerr << "=====网络连接断开=====" << std::endl;
-	std::cerr << "错误码： " << nReason << std::endl;
+	tradeLog->logErr( "=====网络连接断开=====" );
+	tradeLog->stringLog << "错误码： " << nReason;
+	tradeLog->logErr();
 }
 
 void CustomTradeSpi::OnHeartBeatWarning(int nTimeLapse)
 {
-	std::cerr << "=====网络心跳超时=====" << std::endl;
-	std::cerr << "距上次连接时间： " << nTimeLapse << std::endl;
+	tradeLog->logErr("=====网络心跳超时=====");
+	tradeLog->stringLog << "距上次连接时间： " << nTimeLapse;
+	tradeLog->logErr();
 }
 
 void CustomTradeSpi::OnRspUserLogout(
@@ -183,8 +197,9 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 
 		// 策略交易
 		std::cout << "=====开始进入策略交易=====" << std::endl;
-		while (loginFlag)
-			StrategyCheckAndTrade(g_pTradeInstrumentID, this);
+		while (loginFlag) {
+			g_StrategyMap[std::string(g_pTradeInstrumentID)]->operator()();
+		}
 	}
 }
 

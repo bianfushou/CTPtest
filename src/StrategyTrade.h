@@ -22,7 +22,6 @@ using ReqOrderInsertFunctionType = std::function<
 
 void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeSpi *customTradeSpi);
 
-
 class Strategy {
 public:
 	enum Type {
@@ -34,16 +33,30 @@ public:
 		customTradeSpi = tradeSpi;
 	}
 
+	void setVolume(TThostFtdcVolumeType volume) {
+		this->volume = volume;
+	}
+
+	virtual void operator()() = 0;
+protected:
+	std::string instrumentID;
+	CustomTradeSpi *customTradeSpi;
+	TThostFtdcVolumeType volume = 1;
+};
+
+
+class PivotReversalStrategy: public Strategy {
+public:
+	enum Type {
+		open, high, low, close
+	};
+
 	void setLRBars(int left, int right) {
 		this->left = left;
 		this->right = right;
 	}
 
-	void setVolume(TThostFtdcVolumeType volume) {
-		this->volume = volume;
-	}
-
-	void PivotReversalStrategy();
+	virtual void operator()() override;
 private:
 	std::string instrumentID;
 	CustomTradeSpi *customTradeSpi;
@@ -56,4 +69,3 @@ private:
 	int right;
 	double pivot(Strategy::Type type);
 };
-

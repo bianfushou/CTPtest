@@ -28,6 +28,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\CustomMdSpi.h" />
     <ClInclude Include="..\src\CustomTradeSpi.h" />
+    <ClInclude Include="..\src\log.h" />
     <ClInclude Include="..\src\StrategyTrade.h" />
     <ClInclude Include="..\src\TickToKlineHelper.h" />
   </ItemGroup>

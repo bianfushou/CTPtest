@@ -5,6 +5,7 @@
 #include "CustomMdSpi.h"
 #include "CustomTradeSpi.h"
 #include "TickToKlineHelper.h"
+#include "StrategyTrade.h"
 
 using namespace std;
 
@@ -42,6 +43,14 @@ TThostFtdcPriceType gLimitPrice = 22735;                           // 交易价格
 TThostFtdcAuthCodeType gChAuthCode = "0000000000000000";
 TThostFtdcAppIDType	gChAppID = "simnow_client_test";
 
+std::unordered_map<std::string, std::shared_ptr<Strategy>> g_StrategyMap;
+
+void initStrategy(CustomTradeSpi *pTradeSpi) {
+	g_StrategyMap.emplace(g_pTradeInstrumentID, std::make_shared<PivotReversalStrategy>());
+	g_StrategyMap[g_pTradeInstrumentID]->setInstrument(g_pTradeInstrumentID, pTradeSpi);
+	g_StrategyMap[g_pTradeInstrumentID]->setVolume(10);
+}
+
 int main()
 {
 
@@ -65,7 +74,8 @@ int main()
 	g_pTradeUserApi->SubscribePrivateTopic(THOST_TERT_RESTART);   // 订阅私有流
 	g_pTradeUserApi->RegisterFront(gTradeFrontAddr);              // 设置交易前置地址
 	g_pTradeUserApi->Init();                                      // 连接运行
-		
+	
+	initStrategy(pTradeSpi);
 
 	// 等到线程退出
 	g_pMdUserApi->Join();
