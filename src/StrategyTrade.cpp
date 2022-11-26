@@ -60,6 +60,7 @@ void PivotReversalStrategy::operator()()
 			orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
 			orderInsertReq.VolumeTotalOriginal = volume;
 			customTradeSpi->reqOrder(orderInsertReq);
+			status = 1;
 		}
 		else if (status == 2) {
 			{
@@ -82,6 +83,7 @@ void PivotReversalStrategy::operator()()
 				orderInsertReq.VolumeTotalOriginal = volume;
 				customTradeSpi->reqOrder(orderInsertReq);
 			}
+			status = 1;
 			
 		}
 	}
@@ -95,6 +97,7 @@ void PivotReversalStrategy::operator()()
 			orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
 			orderInsertReq.VolumeTotalOriginal = volume;
 			customTradeSpi->reqOrder(orderInsertReq);
+			status = 2;
 		}
 		else if (status == 1) {
 			{
@@ -117,6 +120,7 @@ void PivotReversalStrategy::operator()()
 				orderInsertReq.VolumeTotalOriginal = volume;
 				customTradeSpi->reqOrder(orderInsertReq);
 			}
+			status = 2;
 
 		}
 	}
