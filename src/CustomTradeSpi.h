@@ -2,6 +2,7 @@
 // ---- 派生的交易类 ---- //
 #include "CTP_API/ThostFtdcTraderApi.h"
 #include "log.h"
+#include <functional>
 
 class CustomTradeSpi : public CThostFtdcTraderSpi
 {
@@ -52,6 +53,12 @@ public:
 
 	///成交通知
 	void OnRtnTrade(CThostFtdcTradeField *pTrade);
+
+	virtual ~CustomTradeSpi() {
+		if (tradeLog) {
+			delete tradeLog;
+		}
+	}
 	
 // ---- 自定义函数 ---- //
 public:
@@ -76,6 +83,8 @@ private:
 	bool isErrorRspInfo(CThostFtdcRspInfoField *pRspInfo); // 是否收到错误信息
 	bool isMyOrder(CThostFtdcOrderField *pOrder); // 是否我的报单回报
 	bool isTradingOrder(CThostFtdcOrderField *pOrder); // 是否正在交易的报单
+
+	std::function<void()> curReqFun;
 
 	Logger* tradeLog = nullptr;
 };

@@ -14,6 +14,7 @@ extern TThostFtdcPasswordType gInvesterPassword; // 投资者密码
 extern char *g_pInstrumentID[];                  // 行情合约代码列表，中、上、大、郑交易所各选一种
 extern int instrumentNum;                        // 行情合约订阅数量
 extern std::unordered_map<std::string, TickToKlineHelper> g_KlineHash; // k线存储表
+extern TThostFtdcInstrumentIDType g_pTradeInstrumentID;        // 所交易的合约代码
 
 // ---- ctp_api回调函数 ---- //
 // 连接成功应答
@@ -209,8 +210,14 @@ void CustomMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 
 	// 计算实时k线
 	std::string instrumentKey = std::string(pDepthMarketData->InstrumentID);
-	if (g_KlineHash.find(instrumentKey) == g_KlineHash.end())
+	if (g_KlineHash.find(instrumentKey) == g_KlineHash.end()) {
 		g_KlineHash[instrumentKey] = TickToKlineHelper();
+		if (instrumentKey == std::string(g_pTradeInstrumentID)) {
+			g_KlineHash[instrumentKey].isRecord = true;
+			g_KlineHash[instrumentKey].instrument = instrumentKey;
+		}
+	}
+		
 	g_KlineHash[instrumentKey].KLineFromRealtimeData(pDepthMarketData);
 
 

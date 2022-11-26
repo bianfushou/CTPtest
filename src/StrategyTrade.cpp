@@ -17,7 +17,7 @@ void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeS
 {
 	// ¼ÓËø
 	std::lock_guard<std::mutex> lk(marketDataMutex);
-	TickToKlineHelper tickToKlineObject = g_KlineHash.at(std::string(instrumentID));
+	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(std::string(instrumentID));
 	// ²ßÂÔ
 	std::vector<double> priceVec = tickToKlineObject.m_priceVec;
 	if (priceVec.size() >= 3)
@@ -36,11 +36,17 @@ void PivotReversalStrategy::operator()()
 	std::lock_guard<std::mutex> lk(marketDataMutex);
 	double swh = pivot(Strategy::Type::high);
 	double swl = pivot(Strategy::Type::low);
-	if (swh <= 0.0) {
+	if (swh <= 0.0 ) {
+		if (highPivotQue.empty()) {
+			return;
+		}
 		swh = highPivotQue.back();
 	}
 
 	if (swl <= 0.0) {
+		if (lowPivotQue.empty()) {
+			return;
+		}
 		swl = lowPivotQue.back();
 	}
 	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
@@ -123,10 +129,18 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 	if (tickToKlineObject.m_KLineDataArray.size() < range) {
 		return 0.0;
 	}
+
+	size_t size = tickToKlineObject.m_KLineDataArray.size();
 	bool isMin = false;
 	switch (type) {
 	case Strategy::Type::high:
 	{
+		if (size == barsNumHigh) {
+			return 0.0;
+		}
+		else {
+			barsNumHigh = size;
+		}
 		int i = range;
 		for (auto it = tickToKlineObject.m_KLineDataArray.rbegin(); i > 0; i--, it++) {
 			pivotArray.push_back(it->high_price);
@@ -135,6 +149,12 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 	}
 	case Strategy::Type::low:
 	{
+		if (size == barsNumLow) {
+			return 0.0;
+		}
+		else {
+			barsNumLow = size;
+		}
 		int i = range;
 		for (auto it = tickToKlineObject.m_KLineDataArray.rbegin(); i > 0; i--, it++) {
 			pivotArray.push_back(it->low_price);
@@ -176,9 +196,11 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 	}
 	if (!isMin) {
 		highPivotQue.push_back(pivotVal);
+		outFile << "high:" << pivotVal<< std::endl;
 	}
 	else {
 		lowPivotQue.push_back(pivotVal);
+		outFile << "low:" << pivotVal << std::endl;
 	}
 	
 	return pivotVal;

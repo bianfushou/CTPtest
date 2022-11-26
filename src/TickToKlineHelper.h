@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include "log.h"
 
 // k线数据结构
 struct KLineDataType
@@ -22,8 +23,12 @@ public:
 	// 从实时数据构建k线
 	void KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pDepthMarketData);
 public:
+	bool isRecord = false;
+	bool isInit = false;
 	std::vector<double> m_priceVec; // 存储5分钟的价格
 	std::vector<int> m_volumeVec; // 存储5分钟的成交量
 	std::vector<KLineDataType> m_KLineDataArray;
+	std::string instrument;
 	double lastPrice;
+	std::ofstream outFile;
 };

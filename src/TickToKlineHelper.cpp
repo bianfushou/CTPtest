@@ -6,7 +6,7 @@
 #include "CTP_API/ThostFtdcUserApiStruct.h"
 #include "TickToKlineHelper.h"
 
-const int kDataLineNum = 2 * 60; // 1分钟k线所需行数(末尾不足一分钟的舍去了)
+const int kDataLineNum = 1 * 60; // 1分钟k线所需行数(末尾不足一分钟的舍去了)
 
 void TickToKlineHelper::KLineFromLocalData(const std::string &sFilePath, const std::string &dFilePath)
 {
@@ -87,6 +87,16 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 {
 	m_priceVec.push_back(pDepthMarketData->LastPrice);
 	m_volumeVec.push_back(pDepthMarketData->Volume);
+	
+	if (!isInit && isRecord) {
+		outFile.open("trade_" + instrument +".csv", std::ios::out);
+		outFile << "开盘价" << ','
+			<< "最高价" << ','
+			<< "最低价" << ','
+			<< "收盘价" << ','
+			<< "成交量" << std::endl;
+		isInit = true;
+	}
 	if (m_priceVec.size() == kDataLineNum)
 	{
 		KLineDataType k_line_data;
@@ -97,6 +107,14 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 		// 成交量的真实的算法是当前区间最后一个成交量减去上去一个区间最后一个成交量
 		k_line_data.volume = m_volumeVec.back() - m_volumeVec.front();
 		m_KLineDataArray.push_back(k_line_data); // 此处可以存到内存
+
+		if (isRecord) {
+			outFile << k_line_data.open_price << ','
+				<< k_line_data.high_price << ','
+				<< k_line_data.low_price << ','
+				<< k_line_data.close_price << ','
+				<< k_line_data.volume << std::endl;
+		}
 
 		m_priceVec.clear();
 		m_volumeVec.clear();

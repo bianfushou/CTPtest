@@ -6,6 +6,7 @@
 #include "TickToKlineHelper.h"
 #include "CustomTradeSpi.h"
 #include <list>
+#include <fstream>
 #include <mutex>
 
 typedef void(*reqOrderInsertFun)(
@@ -54,18 +55,19 @@ public:
 	void setLRBars(int left, int right) {
 		this->left = left;
 		this->right = right;
+		outFile.open(instrumentID+ "_Strategy.txt");
 	}
 
 	virtual void operator()() override;
 private:
-	std::string instrumentID;
-	CustomTradeSpi *customTradeSpi;
-	TThostFtdcVolumeType volume = 1;
+	std::ofstream outFile;
 	std::mutex dataMutex;
 	std::list<double> highPivotQue;
 	std::list<double> lowPivotQue;
 	int status = 0; //0无单，1买多单， 2买空单
 	int left;
 	int right;
+	int barsNumHigh = 0;
+	int barsNumLow = 0;
 	double pivot(Strategy::Type type);
 };

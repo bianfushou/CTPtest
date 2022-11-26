@@ -46,7 +46,9 @@ TThostFtdcAppIDType	gChAppID = "simnow_client_test";
 std::unordered_map<std::string, std::shared_ptr<Strategy>> g_StrategyMap;
 
 void initStrategy(CustomTradeSpi *pTradeSpi) {
-	g_StrategyMap.emplace(g_pTradeInstrumentID, std::make_shared<PivotReversalStrategy>());
+	auto pivotReversalStrategyPtr = std::make_shared<PivotReversalStrategy>();
+	pivotReversalStrategyPtr->setLRBars(3,2);
+	g_StrategyMap.emplace(g_pTradeInstrumentID, pivotReversalStrategyPtr);
 	g_StrategyMap[g_pTradeInstrumentID]->setInstrument(g_pTradeInstrumentID, pTradeSpi);
 	g_StrategyMap[g_pTradeInstrumentID]->setVolume(10);
 }
