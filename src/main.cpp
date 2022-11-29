@@ -25,7 +25,7 @@ CThostFtdcMdApi *g_pMdUserApi = nullptr;                           // 行情指针
 //180.168.146.187:10212
 //218.202.237.33:10213
 //180.168.146.187:10131
-char gMdFrontAddr[] = "tcp://180.168.146.187:10131";               // 模拟行情前置地址
+char gMdFrontAddr[] = "tcp://180.168.146.187:10212";               // 模拟行情前置地址
 char *g_pInstrumentID[] = {"cu2212"}; // 行情合约代码列表，中、上、大、郑交易所各选一种
 int instrumentNum = 1;                                             // 行情合约订阅数量
 unordered_map<string, TickToKlineHelper> g_KlineHash;              // 不同合约的k线存储表
@@ -36,7 +36,7 @@ CThostFtdcTraderApi *g_pTradeUserApi = nullptr;                    // 交易指针
 //180.168.146.187:10202
 //218.202.237.33:10203
 //180.168.146.187:10130
-char gTradeFrontAddr[] = "tcp://180.168.146.187:10130";            // 模拟交易前置地址
+char gTradeFrontAddr[] = "tcp://180.168.146.187:10202";            // 模拟交易前置地址
 TThostFtdcInstrumentIDType g_pTradeInstrumentID = "cu2212";        // 所交易的合约代码
 TThostFtdcDirectionType gTradeDirection = THOST_FTDC_D_Sell;       // 买卖方向
 TThostFtdcPriceType gLimitPrice = 22735;                           // 交易价格

@@ -3,6 +3,8 @@
 #include "CTP_API/ThostFtdcTraderApi.h"
 #include "log.h"
 #include <functional>
+#include <memory>
+#include <deque>
 
 class CustomTradeSpi : public CThostFtdcTraderSpi
 {
@@ -64,11 +66,13 @@ public:
 public:
 	bool loginFlag; // 登陆成功的标识
 	void reqOrderInsert(
-		TThostFtdcInstrumentIDType instrumentID,
+		const TThostFtdcInstrumentIDType instrumentID,
 		TThostFtdcPriceType price,
 		TThostFtdcVolumeType volume,
 		TThostFtdcDirectionType direction); // 个性化报单录入，外部调用
-	void reqOrder(CThostFtdcInputOrderField& orderInsertReq, bool isDefault = true);
+	void reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq, bool isDefault = true);
+
+	std::deque<std::function<void()>> orderTask;
 private:
 	void reqAuthenticate();
 	void reqUserLogin(); // 登录请求
@@ -84,7 +88,7 @@ private:
 	bool isMyOrder(CThostFtdcOrderField *pOrder); // 是否我的报单回报
 	bool isTradingOrder(CThostFtdcOrderField *pOrder); // 是否正在交易的报单
 
-	std::function<void()> curReqFun;
+	std::function<void()> curReqFun = []() {throw "null"; };
 
 	Logger* tradeLog = nullptr;
 };

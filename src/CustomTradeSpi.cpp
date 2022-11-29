@@ -87,6 +87,11 @@ void CustomTradeSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID
 
 void CustomTradeSpi::OnFrontDisconnected(int nReason)
 {
+	if (!tradeLog) {
+		std::string fileName = Logger::initFileName("CustomTrade");
+		tradeLog = new Logger(fileName);
+	}
+	bool open = tradeLog->logIsOpen();
 	tradeLog->logErr( "=====网络连接断开=====" );
 	tradeLog->stringLog << "错误码： " << nReason;
 	tradeLog->logErr();
@@ -213,7 +218,7 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 		// 策略交易
 		tradeLog->logInfo("=====开始进入策略交易=====" );
 		while (loginFlag) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			g_StrategyMap[std::string(g_pTradeInstrumentID)]->operator()();
 		}
 	}
@@ -281,6 +286,10 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "成交量： " << pTrade->Volume << std::endl;
 	tradeLog->stringLog << "开平仓方向： " << pTrade->Direction << std::endl;
 	tradeLog->logInfo();
+	if (orderTask.size() > 0) {
+		orderTask.front()();
+		orderTask.pop_front();
+	}
 }
 
 bool CustomTradeSpi::isErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
@@ -306,8 +315,10 @@ void CustomTradeSpi::reqAuthenticate() {
 	strcpy_s(auth.AppID, gChAppID);
 	static int requestID = 0; // 请求编号
 	int rt = g_pTradeUserApi->ReqAuthenticate(&auth, requestID);
-	if (!rt)
-		tradeLog->logInfo(">>>>>>发送认证请求成功" );
+	if (!rt) {
+		tradeLog->logInfo(">>>>>>发送认证请求成功");
+		curReqFun = std::bind(&CustomTradeSpi::reqAuthenticate, this);
+	}
 	else
 		tradeLog->logErr("--->>>发送认证请求失败" );
 }
@@ -321,8 +332,10 @@ void CustomTradeSpi::reqUserLogin()
 	strcpy(loginReq.Password, gInvesterPassword);
 	static int requestID = 0; // 请求编号
 	int rt = g_pTradeUserApi->ReqUserLogin(&loginReq, requestID);
-	if (!rt)
+	if (!rt) {
 		tradeLog->logInfo(">>>>>>发送登录请求成功");
+		curReqFun = std::bind(&CustomTradeSpi::reqUserLogin, this);
+	}
 	else
 		tradeLog->logErr("--->>>发送登录请求失败");
 }
@@ -335,8 +348,10 @@ void CustomTradeSpi::reqUserLogout()
 	strcpy(logoutReq.UserID, gInvesterID);
 	static int requestID = 0; // 请求编号
 	int rt = g_pTradeUserApi->ReqUserLogout(&logoutReq, requestID);
-	if (!rt)
-		tradeLog->logInfo(">>>>>>发送登出请求成功" );
+	if (!rt) {
+		tradeLog->logInfo(">>>>>>发送登出请求成功");
+		curReqFun = std::bind(&CustomTradeSpi::reqUserLogout, this);
+	}
 	else
 		tradeLog->logErr("--->>>发送登出请求失败" );
 }
@@ -484,13 +499,14 @@ void CustomTradeSpi::reqOrderInsert()
 	int rt = g_pTradeUserApi->ReqOrderInsert(&orderInsertReq, ++requestID);
 	if (!rt) {
 		tradeLog->logInfo(">>>>>>发送报单录入请求成功");
+		curReqFun = [this]() {this->reqOrderInsert(); };
 	}
 	else
 		tradeLog->logErr("--->>>发送报单录入请求失败");
 }
 
 void CustomTradeSpi::reqOrderInsert(
-	TThostFtdcInstrumentIDType instrumentID,
+	const TThostFtdcInstrumentIDType instrumentID,
 	TThostFtdcPriceType price,
 	TThostFtdcVolumeType volume,
 	TThostFtdcDirectionType direction)
@@ -534,13 +550,17 @@ void CustomTradeSpi::reqOrderInsert(
 
 	static int requestID = 0; // 请求编号
 	int rt = g_pTradeUserApi->ReqOrderInsert(&orderInsertReq, ++requestID);
-	if (!rt)
-		tradeLog->logInfo(">>>>>>发送报单录入请求成功" );
+	if (!rt) {
+		tradeLog->logInfo(">>>>>>发送报单录入请求成功");
+		std::string  instrumentStr(instrumentID);
+		curReqFun = [this, instrumentStr, price, volume, direction]() {this->reqOrderInsert(instrumentStr.c_str(), price, volume, direction); };
+	}
 	else
 		tradeLog->logErr("--->>>发送报单录入请求失败");
 }
 
-void CustomTradeSpi::reqOrder(CThostFtdcInputOrderField& orderInsertReq, bool isDefault) {
+void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderInsertReqPtr, bool isDefault) {
+	auto orderInsertReq = *orderInsertReqPtr;
 	if (isDefault) {
 		strcpy(orderInsertReq.BrokerID, gBrokerID);
 		///投资者代码
@@ -548,7 +568,7 @@ void CustomTradeSpi::reqOrder(CThostFtdcInputOrderField& orderInsertReq, bool is
 		///报单引用
 		strcpy(orderInsertReq.OrderRef, order_ref);
 		///报单价格条件: 限价
-		orderInsertReq.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
+		orderInsertReq.OrderPriceType = THOST_FTDC_OPT_AnyPrice;
 		///组合投机套保标志
 		orderInsertReq.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
 		///有效期类型: 当日有效
@@ -568,9 +588,15 @@ void CustomTradeSpi::reqOrder(CThostFtdcInputOrderField& orderInsertReq, bool is
 
 	}
 	static int requestID = 0; // 请求编号
-	int rt = g_pTradeUserApi->ReqOrderInsert(&orderInsertReq, ++requestID);
-	if (!rt)
-		tradeLog->logInfo(">>>>>>发送报单录入请求成功" );
+	int rt = g_pTradeUserApi->ReqOrderInsert(orderInsertReqPtr.get(), ++requestID);
+	if (!rt) {
+		tradeLog->logInfo(">>>>>>发送报单录入请求成功");
+		curReqFun = [this, orderInsertReqPtr, isDefault]() {this->reqOrder(orderInsertReqPtr, isDefault); };
+	}
+	else if (rt == -2 || rt == -3) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		reqOrder(orderInsertReqPtr, false);
+	}
 	else
 		tradeLog->logErr("--->>>发送报单录入请求失败" );
 }
