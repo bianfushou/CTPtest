@@ -217,7 +217,7 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 
 		// 策略交易
 		tradeLog->logInfo("=====开始进入策略交易=====" );
-		std::string tradeInstrumentID(pInvestorPosition->InstrumentID);
+		std::string tradeInstrumentID(g_pTradeInstrumentID);
 		tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
 				while (loginFlag && !taskStop) {
 					std::this_thread::sleep_for(std::chrono::milliseconds(100));
