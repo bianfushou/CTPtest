@@ -51,6 +51,7 @@ void initStrategy(CustomTradeSpi *pTradeSpi) {
 	g_StrategyMap.emplace(g_pTradeInstrumentID, pivotReversalStrategyPtr);
 	g_StrategyMap[g_pTradeInstrumentID]->setInstrument(g_pTradeInstrumentID, pTradeSpi);
 	g_StrategyMap[g_pTradeInstrumentID]->setVolume(10);
+	g_StrategyMap[g_pTradeInstrumentID]->init();
 }
 
 int main()

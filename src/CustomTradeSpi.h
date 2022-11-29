@@ -57,9 +57,14 @@ public:
 	void OnRtnTrade(CThostFtdcTradeField *pTrade);
 
 	virtual ~CustomTradeSpi() {
+		taskStop = true;
 		if (tradeLog) {
 			delete tradeLog;
 		}
+		for (auto& task : tradeStrategyTasks) {
+			task.join();
+		}
+		reqUserLogout();
 	}
 	
 // ---- 自定义函数 ---- //
@@ -71,8 +76,6 @@ public:
 		TThostFtdcVolumeType volume,
 		TThostFtdcDirectionType direction); // 个性化报单录入，外部调用
 	void reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq, bool isDefault = true);
-
-	std::deque<std::function<void()>> orderTask;
 private:
 	void reqAuthenticate();
 	void reqUserLogin(); // 登录请求
@@ -91,4 +94,6 @@ private:
 	std::function<void()> curReqFun = []() {throw "null"; };
 
 	Logger* tradeLog = nullptr;
+	std::vector<std::thread> tradeStrategyTasks;
+	bool taskStop = false;
 };

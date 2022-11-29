@@ -29,6 +29,6 @@ public:
 	std::vector<int> m_volumeVec; // 存储5分钟的成交量
 	std::vector<KLineDataType> m_KLineDataArray;
 	std::string instrument;
-	double lastPrice;
+	volatile double lastPrice;
 	std::ofstream outFile;
 };

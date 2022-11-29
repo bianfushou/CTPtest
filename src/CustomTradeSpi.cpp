@@ -217,10 +217,14 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 
 		// 策略交易
 		tradeLog->logInfo("=====开始进入策略交易=====" );
-		while (loginFlag) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			g_StrategyMap[std::string(g_pTradeInstrumentID)]->operator()();
-		}
+		std::string tradeInstrumentID(pInvestorPosition->InstrumentID);
+		tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
+				while (loginFlag && !taskStop) {
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					g_StrategyMap[tradeInstrumentID]->operator()();
+				}
+			}
+		);
 	}
 }
 
@@ -273,7 +277,13 @@ void CustomTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 			//reqUserLogout(); // 登出测试
 		}
 		else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled)
+		{
+			
+			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pOrder->InstrumentID)].get());
+			strategy->resetStatus();
 			tradeLog->logInfo("--->>> 撤单成功！");
+		}
+			
 	}
 }
 
@@ -286,10 +296,8 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "成交量： " << pTrade->Volume << std::endl;
 	tradeLog->stringLog << "开平仓方向： " << pTrade->Direction << std::endl;
 	tradeLog->logInfo();
-	if (orderTask.size() > 0) {
-		orderTask.front()();
-		orderTask.pop_front();
-	}
+	PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
+	strategy->statusDone();
 }
 
 bool CustomTradeSpi::isErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)

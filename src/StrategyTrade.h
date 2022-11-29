@@ -8,6 +8,7 @@
 #include <list>
 #include <fstream>
 #include <mutex>
+#include <queue>
 
 typedef void(*reqOrderInsertFun)(
 	TThostFtdcInstrumentIDType instrumentID,
@@ -38,6 +39,8 @@ public:
 		this->volume = volume;
 	}
 
+	virtual void init() = 0;
+
 	virtual void operator()() = 0;
 protected:
 	std::string instrumentID;
@@ -55,19 +58,36 @@ public:
 	void setLRBars(int left, int right) {
 		this->left = left;
 		this->right = right;
-		outFile.open(instrumentID+ "_Strategy.txt");
 	}
-
+	virtual void init() override {
+		outFile.open(instrumentID + "_Strategy.txt");
+	}
 	virtual void operator()() override;
+
+	void resetStatus() {
+		std::lock_guard<std::mutex> lk(strategyMutex);
+		status = preStatus;
+	}
+	void statusDone() {
+		std::lock_guard<std::mutex> lk(strategyMutex);
+		if (status >= 8) {
+			status -= 8;
+		}
+	}
 private:
 	std::ofstream outFile;
 	std::mutex dataMutex;
 	std::list<double> highPivotQue;
 	std::list<double> lowPivotQue;
+	int preStatus = 0;
 	int status = 0; //0无单，1买多单， 2买空单
 	int left;
 	int right;
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
+	std::mutex strategyMutex;
+	std::queue<std::function<void()>> taskQue;
+
+
 	double pivot(Strategy::Type type);
 };

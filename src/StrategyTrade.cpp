@@ -33,7 +33,16 @@ void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeS
 
 void PivotReversalStrategy::operator()()
 {
-	std::lock_guard<std::mutex> lk(marketDataMutex);
+	if (status >= 8) {
+		return;
+	}
+	else {
+		if (taskQue.size() > 0) {
+			taskQue.front();
+			taskQue.pop();
+		}
+	}
+	std::lock_guard<std::mutex> lk(strategyMutex);
 	double swh = pivot(Strategy::Type::high);
 	double swl = pivot(Strategy::Type::low);
 	if (swh <= 0.0 ) {
@@ -52,6 +61,8 @@ void PivotReversalStrategy::operator()()
 	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
 	if (tickToKlineObject.lastPrice > swh) {
 		if (status == 0) {
+			preStatus = 0;
+			status = status | 8;
 			std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 			memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 			strcpy(orderInsertReq->InstrumentID, instrumentID.c_str());
@@ -60,10 +71,13 @@ void PivotReversalStrategy::operator()()
 			orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
 			orderInsertReq->VolumeTotalOriginal = volume;
 			customTradeSpi->reqOrder(orderInsertReq);
-			status = 1;
+			
+			status = 8 | 1;
 		}
 		else if (status == 2) {
+			preStatus = 2;
 			{
+				status = status | 8;
 				std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 				memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 				strcpy(orderInsertReq->InstrumentID, instrumentID.c_str());
@@ -74,24 +88,34 @@ void PivotReversalStrategy::operator()()
 				customTradeSpi->reqOrder(orderInsertReq);
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
-			customTradeSpi->orderTask.push_back([this, lastPrice](){
-				{
+			taskQue.push([this, swh](){
+				preStatus = 0;
+				status = preStatus | 8;
+				std::lock_guard<std::mutex> lk(strategyMutex);
+				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(std::string(instrumentID));
+				if (tickToKlineObject.lastPrice > swh) {
 					std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 					memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 					strcpy(orderInsertReq->InstrumentID, instrumentID.c_str());
 					orderInsertReq->Direction = THOST_FTDC_D_Buy;
 					orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-					orderInsertReq->LimitPrice = lastPrice;
+					orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
 					orderInsertReq->VolumeTotalOriginal = volume;
 					customTradeSpi->reqOrder(orderInsertReq);
+					status = 8 | 1;
 				}
-				status = 1;
+				else {
+					status = 0;
+				}
+				
 			});
 			
 		}
 	}
 	if (tickToKlineObject.lastPrice < swl) {
 		if (status == 0) {
+			preStatus = 0;
+			status = status | 8;
 			std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 			memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 			strcpy(orderInsertReq->InstrumentID, instrumentID.c_str());
@@ -100,9 +124,11 @@ void PivotReversalStrategy::operator()()
 			orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
 			orderInsertReq->VolumeTotalOriginal = volume;
 			customTradeSpi->reqOrder(orderInsertReq);
-			status = 2;
+			status = 8 | 2;
 		}
 		else if (status == 1) {
+			preStatus = 1;
+			status = status | 8;
 			{
 				std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 				memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
@@ -114,18 +140,25 @@ void PivotReversalStrategy::operator()()
 				customTradeSpi->reqOrder(orderInsertReq);
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
-			customTradeSpi->orderTask.push_back([this, lastPrice]() {
-				{
+			taskQue.push([this, swl]() {
+				preStatus = 0;
+				status = preStatus | 8;
+				std::lock_guard<std::mutex> lk(strategyMutex);
+				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(std::string(instrumentID));
+				if (tickToKlineObject.lastPrice < swl) {
 					std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 					memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 					strcpy(orderInsertReq->InstrumentID, instrumentID.c_str());
 					orderInsertReq->Direction = THOST_FTDC_D_Sell;
 					orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-					orderInsertReq->LimitPrice = lastPrice;
+					orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
 					orderInsertReq->VolumeTotalOriginal = volume;
 					customTradeSpi->reqOrder(orderInsertReq);
+					status = 8 | 2;
 				}
-				status = 2;
+				else {
+					status = 0;
+				}
 			});
 
 		}
