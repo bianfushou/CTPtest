@@ -244,6 +244,10 @@ void CustomTradeSpi::OnRspOrderInsert(
 		tradeLog->stringLog << "¿ª²Ö·½Ïò£º " << pInputOrder->Direction << std::endl;
 		tradeLog->logInfo();
 	}
+	else {
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInputOrder->InstrumentID)].get());
+		strategy->resetStatus();
+	}
 }
 
 void CustomTradeSpi::OnRspOrderAction(
