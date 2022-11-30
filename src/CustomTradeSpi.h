@@ -76,6 +76,7 @@ public:
 		TThostFtdcVolumeType volume,
 		TThostFtdcDirectionType direction); // 个性化报单录入，外部调用
 	void reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq, bool isDefault = true);
+
 private:
 	void reqAuthenticate();
 	void reqUserLogin(); // 登录请求
@@ -95,5 +96,6 @@ private:
 
 	Logger* tradeLog = nullptr;
 	std::vector<std::thread> tradeStrategyTasks;
+	std::unordered_map<std::string, CThostFtdcInstrumentField> InstrumentFieldMap;
 	bool taskStop = false;
 };

@@ -160,6 +160,7 @@ void CustomTradeSpi::OnRspQryInstrument(
 		tradeLog->logInfo();
 		// 请求查询投资者资金账户
 		if (bIsLast) {
+			InstrumentFieldMap.emplace(std::string(pInstrument->InstrumentID), *pInstrument);
 			reqQueryTradingAccount();
 		}
 	}
@@ -583,6 +584,8 @@ void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderIn
 		orderInsertReq.TimeCondition = THOST_FTDC_TC_GFD;
 		///成交量类型: 任何数量
 		orderInsertReq.VolumeCondition = THOST_FTDC_VC_AV;
+
+		strcpy_s(orderInsertReq.ExchangeID, InstrumentFieldMap[orderInsertReq.InstrumentID].ExchangeID);
 		///最小成交量: 1
 		orderInsertReq.MinVolume = 1;
 		///触发条件: 立即
@@ -592,7 +595,7 @@ void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderIn
 		///自动挂起标志: 否
 		orderInsertReq.IsAutoSuspend = 0;
 		///用户强评标志: 否
-		orderInsertReq.UserForceClose = 0;
+		//orderInsertReq.UserForceClose = 0;
 
 	}
 	static int requestID = 0; // 请求编号
