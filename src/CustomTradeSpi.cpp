@@ -379,7 +379,7 @@ void CustomTradeSpi::reqSettlementInfoConfirm()
 	}
 	else if (rt = -2 || rt == -3) {
 
-		tradeLog->logErr("--->>>发送合约查询请求失败");
+		tradeLog->logErr("--->>>发送投资者结算结果确认请求失败");
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		reqSettlementInfoConfirm();
 	}
@@ -428,7 +428,7 @@ void CustomTradeSpi::reqQueryTradingAccount()
 	}
 	else if (rt = -2 || rt == -3) {
 
-		tradeLog->logErr("--->>>发送合约查询请求失败");
+		tradeLog->logErr("--->>>发送投资者结算结果确认请求失败");
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		reqQueryTradingAccount();
 	}
@@ -454,7 +454,7 @@ void CustomTradeSpi::reqQueryInvestorPosition()
 	}
 	else if (rt = -2 || rt == -3) {
 
-		tradeLog->logErr("--->>>发送合约查询请求失败");
+		tradeLog->logErr("--->>>发送投资者持仓查询请求失败");
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		reqQueryInvestorPosition();
 	}
