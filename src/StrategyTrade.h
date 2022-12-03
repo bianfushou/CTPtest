@@ -76,7 +76,7 @@ public:
 	}
 private:
 	std::ofstream outFile;
-	std::mutex dataMutex;
+	std::mutex strategyMutex;
 	std::list<double> highPivotQue;
 	std::list<double> lowPivotQue;
 	int preStatus = 0;
@@ -85,7 +85,7 @@ private:
 	int right;
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
-	std::mutex strategyMutex;
+	
 	std::queue<std::function<void()>> taskQue;
 
 

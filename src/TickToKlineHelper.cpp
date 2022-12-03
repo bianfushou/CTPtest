@@ -6,7 +6,7 @@
 #include "CTP_API/ThostFtdcUserApiStruct.h"
 #include "TickToKlineHelper.h"
 
-const int kDataLineNum = 1 * 60; // 1分钟k线所需行数(末尾不足一分钟的舍去了)
+const int kDataLineNum = 1 * 20; // 1分钟k线所需行数(末尾不足一分钟的舍去了)
 
 void TickToKlineHelper::KLineFromLocalData(const std::string &sFilePath, const std::string &dFilePath)
 {

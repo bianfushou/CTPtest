@@ -302,7 +302,8 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "开平仓方向： " << pTrade->Direction << std::endl;
 	tradeLog->logInfo();
 	PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
-	strategy->statusDone();
+	if(strategy)
+		strategy->statusDone();
 }
 
 bool CustomTradeSpi::isErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
@@ -579,9 +580,9 @@ void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderIn
 		///投资者代码
 		strcpy(orderInsertReq.InvestorID, gInvesterID);
 		///报单引用
-		strcpy(orderInsertReq.OrderRef, order_ref);
+		//strcpy(orderInsertReq.OrderRef, order_ref);
 		///报单价格条件: 限价
-		orderInsertReq.OrderPriceType = THOST_FTDC_OPT_AnyPrice;
+		orderInsertReq.OrderPriceType = THOST_FTDC_OPT_LimitPrice; //THOST_FTDC_OPT_AnyPrice;
 		///组合投机套保标志
 		orderInsertReq.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
 		///有效期类型: 当日有效
@@ -664,8 +665,7 @@ void CustomTradeSpi::reqOrderAction(CThostFtdcOrderField *pOrder)
 bool CustomTradeSpi::isMyOrder(CThostFtdcOrderField *pOrder)
 {
 	return ((pOrder->FrontID == trade_front_id) &&
-		(pOrder->SessionID == session_id) &&
-		(strcmp(pOrder->OrderRef, order_ref) == 0));
+		(pOrder->SessionID == session_id));
 }
 
 bool CustomTradeSpi::isTradingOrder(CThostFtdcOrderField *pOrder)
