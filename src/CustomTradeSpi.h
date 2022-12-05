@@ -1,6 +1,11 @@
 #pragma once
 // ---- 派生的交易类 ---- //
+#include"Config.h"
+#ifdef CTPTest
+#include "CTPTest_API/ThostFtdcTraderApi.h"
+#else
 #include "CTP_API/ThostFtdcTraderApi.h"
+#endif
 #include "log.h"
 #include <functional>
 #include <memory>

@@ -3,7 +3,11 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#ifdef CTPTest
+#include "CTPTest_API/ThostFtdcUserApiStruct.h"
+#else
 #include "CTP_API/ThostFtdcUserApiStruct.h"
+#endif
 #include "TickToKlineHelper.h"
 
 const int kDataLineNum = 1 * 20; // 1分钟k线所需行数(末尾不足一分钟的舍去了)

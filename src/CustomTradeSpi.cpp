@@ -246,7 +246,9 @@ void CustomTradeSpi::OnRspOrderInsert(
 	}
 	else {
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInputOrder->InstrumentID)].get());
-		strategy->resetStatus();
+		if (strategy) {
+			strategy->resetStatus();
+		}
 	}
 }
 
@@ -285,8 +287,11 @@ void CustomTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 		{
 			
 			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pOrder->InstrumentID)].get());
-			strategy->resetStatus();
-			tradeLog->logInfo("--->>> 撤单成功！");
+			if (strategy) {
+				strategy->resetStatus();
+				tradeLog->logInfo("--->>> 撤单成功！");
+			}
+			
 		}
 			
 	}
@@ -302,8 +307,10 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "开平仓方向： " << pTrade->Direction << std::endl;
 	tradeLog->logInfo();
 	PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
-	if(strategy)
+	if (strategy) {
 		strategy->statusDone();
+		tradeLog->logInfo("******Trade success******");
+	}
 }
 
 bool CustomTradeSpi::isErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)

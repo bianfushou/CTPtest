@@ -1,7 +1,12 @@
 #pragma once
 // ---- 派生的行情类 ---- //
+#include "Config.h"
 #include <vector>
 #include "CTP_API/ThostFtdcMdApi.h"
+#ifdef CTPTest
+
+#else
+#endif
 
 class CustomMdSpi: public CThostFtdcMdSpi
 {

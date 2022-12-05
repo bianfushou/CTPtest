@@ -1,8 +1,13 @@
 #pragma once
 // ---- 简单策略交易的类 ---- //
 
+#include"Config.h"
 #include <functional>
+#ifdef CTPTest
+#include "CTPTest_API/ThostFtdcUserApiStruct.h"
+#else
 #include "CTP_API/ThostFtdcUserApiStruct.h"
+#endif
 #include "TickToKlineHelper.h"
 #include "CustomTradeSpi.h"
 #include <list>
