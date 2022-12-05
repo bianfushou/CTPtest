@@ -18,6 +18,7 @@ extern TThostFtdcPriceType gLimitPrice;                       // 交易价格
 extern TThostFtdcAuthCodeType gChAuthCode;                    //认证码
 extern TThostFtdcAppIDType	gChAppID;
 extern std::unordered_map<std::string, std::shared_ptr<Strategy>> g_StrategyMap;
+extern std::unordered_map<std::string, TickToKlineHelper> g_KlineHash;
 
 
 // 会话参数
@@ -219,6 +220,8 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 		// 策略交易
 		tradeLog->logInfo("=====开始进入策略交易=====" );
 		std::string tradeInstrumentID(g_pTradeInstrumentID);
+		reqOrderInsert();
+		/*
 		tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
 				while (loginFlag && !taskStop) {
 					std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -226,6 +229,7 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				}
 			}
 		);
+		*/
 	}
 }
 
@@ -488,17 +492,19 @@ void CustomTradeSpi::reqOrderInsert()
 	///合约代码
 	strcpy(orderInsertReq.InstrumentID, g_pTradeInstrumentID);
 	///报单引用
-	strcpy(orderInsertReq.OrderRef, order_ref);
+	//strcpy(orderInsertReq.OrderRef, order_ref);
 	///报单价格条件: 限价
 	orderInsertReq.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
 	///买卖方向: 
-	orderInsertReq.Direction = gTradeDirection;
+	orderInsertReq.Direction = THOST_FTDC_D_Buy;
 	///组合开平标志: 开仓
 	orderInsertReq.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
 	///组合投机套保标志
 	orderInsertReq.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
 	///价格
-	orderInsertReq.LimitPrice = gLimitPrice;
+	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(std::string(g_pTradeInstrumentID));
+	orderInsertReq.LimitPrice = tickToKlineObject.lastPrice;
 	///数量：1
 	orderInsertReq.VolumeTotalOriginal = 1;
 	///有效期类型: 当日有效
@@ -509,12 +515,14 @@ void CustomTradeSpi::reqOrderInsert()
 	orderInsertReq.MinVolume = 1;
 	///触发条件: 立即
 	orderInsertReq.ContingentCondition = THOST_FTDC_CC_Immediately;
+	orderInsertReq.StopPrice = 0;
 	///强平原因: 非强平
 	orderInsertReq.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
 	///自动挂起标志: 否
 	orderInsertReq.IsAutoSuspend = 0;
 	///用户强评标志: 否
 	orderInsertReq.UserForceClose = 0;
+	strcpy_s(orderInsertReq.ExchangeID, InstrumentFieldMap[orderInsertReq.InstrumentID].ExchangeID);
 
 	static int requestID = 0; // 请求编号
 	int rt = g_pTradeUserApi->ReqOrderInsert(&orderInsertReq, ++requestID);
