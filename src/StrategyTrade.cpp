@@ -63,15 +63,7 @@ void PivotReversalStrategy::operator()()
 		if (status == 0) {
 			this->preStatus = 0;
 			this->status = this->status | 8;
-			std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
-			memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
-			strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
-			orderInsertReq->Direction = THOST_FTDC_D_Buy;
-			orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-			orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
-			orderInsertReq->VolumeTotalOriginal = 1;
-			orderInsertReq->StopPrice = 0;
-			customTradeSpi->reqOrder(orderInsertReq);
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 			
 			this->status = 8 | 1;
 		}
@@ -79,15 +71,8 @@ void PivotReversalStrategy::operator()()
 			preStatus = 2;
 			{
 				status = status | 8;
-				std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
-				memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
-				strcpy(orderInsertReq->InstrumentID, instrumentID.c_str());
-				orderInsertReq->Direction = THOST_FTDC_D_Sell;
-				orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_CloseToday;
-				orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
-				orderInsertReq->VolumeTotalOriginal = 1;
-				orderInsertReq->StopPrice = 0;
-				customTradeSpi->reqOrder(orderInsertReq);
+				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, volume);
+				this->status = 8;
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swh](){
@@ -96,15 +81,7 @@ void PivotReversalStrategy::operator()()
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
 				if (tickToKlineObject.lastPrice > swh) {
-					std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
-					memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
-					strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
-					orderInsertReq->Direction = THOST_FTDC_D_Buy;
-					orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-					orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
-					orderInsertReq->VolumeTotalOriginal = 1;
-					orderInsertReq->StopPrice = 0;
-					customTradeSpi->reqOrder(orderInsertReq);
+					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 1;
 				}
 				else {
@@ -114,35 +91,25 @@ void PivotReversalStrategy::operator()()
 			});
 			
 		}
+		else if (status == 1 && curVolume < volume) {
+			this->preStatus = 1;
+			this->status = 8 | 1;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
+		}
 	}
 	if (tickToKlineObject.lastPrice < swl) {
 		if (status == 0) {
 			preStatus = 0;
 			status = status | 8;
-			std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
-			memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
-			strcpy(orderInsertReq->InstrumentID, instrumentID.c_str());
-			orderInsertReq->Direction = THOST_FTDC_D_Sell;
-			orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-			orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
-			orderInsertReq->VolumeTotalOriginal = 1;
-			orderInsertReq->StopPrice = 0;
-			customTradeSpi->reqOrder(orderInsertReq);
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
 			status = 8 | 2;
 		}
 		else if (status == 1) {
 			this->preStatus = 1;
 			this->status = this->status | 8;
 			{
-				std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
-				memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
-				strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
-				orderInsertReq->Direction = THOST_FTDC_D_Buy;
-				orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_CloseToday;
-				orderInsertReq->LimitPrice = tickToKlineObject.lastPrice ;
-				orderInsertReq->VolumeTotalOriginal = 1;
-				orderInsertReq->StopPrice = 0;
-				customTradeSpi->reqOrder(orderInsertReq);
+				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, volume);
+				this->status = 8;
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swl]() {
@@ -151,15 +118,7 @@ void PivotReversalStrategy::operator()()
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
 				if (tickToKlineObject.lastPrice < swl) {
-					std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
-					memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
-					strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
-					orderInsertReq->Direction = THOST_FTDC_D_Sell;
-					orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-					orderInsertReq->LimitPrice = tickToKlineObject.lastPrice ;
-					orderInsertReq->VolumeTotalOriginal = 1;
-					orderInsertReq->StopPrice = 0;
-					customTradeSpi->reqOrder(orderInsertReq);
+					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 2;
 				}
 				else {
@@ -168,7 +127,27 @@ void PivotReversalStrategy::operator()()
 			});
 
 		}
+		else if (status == 2 && curVolume < volume) {
+			this->preStatus = 2;
+			this->status = 8 | 2;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
+		}
 	}
+}
+
+void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField investor) {
+	std::lock_guard<std::mutex> lk(strategyMutex);
+	if (investor.PosiDirection == THOST_FTDC_PD_Long) {
+		this->longInvestor = investor;
+		TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
+		makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, investor.OpenVolume);
+	}
+	else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
+		shortInvestor = investor;
+		TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
+		makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, investor.OpenVolume);
+	}
+	curVolume = 0;
 }
 
 double PivotReversalStrategy::pivot(Strategy::Type type) {

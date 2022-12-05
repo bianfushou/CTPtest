@@ -78,11 +78,37 @@ public:
 			status -= 8;
 		}
 	}
+
+	int getStatus() {
+		return status;
+	}
+
+	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume ) {
+		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
+		memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
+		strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
+		orderInsertReq->Direction = direction;
+		orderInsertReq->CombOffsetFlag[0] = offsetFlag;
+		orderInsertReq->LimitPrice = lastPrice;
+		orderInsertReq->VolumeTotalOriginal = volume;
+		orderInsertReq->StopPrice = 0;
+		customTradeSpi->reqOrder(orderInsertReq);
+	}
+
+	void clearInvestor(CThostFtdcInvestorPositionField investor);
+
+	void addCurVolume(TThostFtdcVolumeType v) {
+		std::lock_guard<std::mutex> lk(strategyMutex);
+		curVolume += v;
+	}
 private:
 	std::ofstream outFile;
 	std::mutex strategyMutex;
 	std::list<double> highPivotQue;
 	std::list<double> lowPivotQue;
+
+	CThostFtdcInvestorPositionField longInvestor;
+	CThostFtdcInvestorPositionField shortInvestor;
 	int preStatus = 0;
 	int status = 0; //0无单，1买多单， 2买空单
 	int left;
@@ -91,7 +117,7 @@ private:
 	int barsNumLow = 0;
 	
 	std::list<std::function<void()>> taskQue;
-
+	TThostFtdcVolumeType curVolume;
 
 	double pivot(Strategy::Type type);
 };

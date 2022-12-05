@@ -207,28 +207,44 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			tradeLog->stringLog << "开仓方向： " << pInvestorPosition->PosiDirection << std::endl;
 			tradeLog->stringLog << "占用保证金：" << pInvestorPosition->UseMargin << std::endl;
 			tradeLog->logInfo();
+			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInvestorPosition->InstrumentID)].get());
+			if (strategy && (strategy->getStatus() == 0 || strategy->getStatus() == 8)) {
+				strategy->clearInvestor(*pInvestorPosition);
+			}
 		}
-		else
-			tradeLog->logInfo("----->该合约未持仓" );
-		
-		// 报单录入请求（这里是一部接口，此处是按顺序执行）
-		/*if (loginFlag)
-			reqOrderInsert();*/
-		//if (loginFlag)
-		//	reqOrderInsertWithParams(g_pTradeInstrumentID, gLimitPrice, 1, gTradeDirection); // 自定义一笔交易
+		else {
+			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
+			if (strategy && strategy->getStatus() == 8) {
+				strategy->statusDone();
+				tradeLog->logInfo("******Trade success******");
+			}
+			tradeLog->logInfo("----->该合约未持仓");
 
-		// 策略交易
-		tradeLog->logInfo("=====开始进入策略交易=====" );
-		std::string tradeInstrumentID(g_pTradeInstrumentID);
-		//reqOrderInsert();
-		
-		tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
-				while (loginFlag && !taskStop) {
-					std::this_thread::sleep_for(std::chrono::milliseconds(100));
-					g_StrategyMap[tradeInstrumentID]->operator()();
+			// 报单录入请求（这里是一部接口，此处是按顺序执行）
+			/*if (loginFlag)
+				reqOrderInsert();*/
+				//if (loginFlag)
+				//	reqOrderInsertWithParams(g_pTradeInstrumentID, gLimitPrice, 1, gTradeDirection); // 自定义一笔交易
+			if (bIsLast) {
+				// 策略交易
+				tradeLog->logInfo("=====开始进入策略交易=====");
+				std::string tradeInstrumentID(g_pTradeInstrumentID);
+				//reqOrderInsert();
+				if (tradeStrategyTasks.empty()) {
+					tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
+						while (loginFlag && !taskStop) {
+							std::this_thread::sleep_for(std::chrono::milliseconds(50));
+							g_StrategyMap[tradeInstrumentID]->operator()();
+						}
+					}
+					);
 				}
 			}
-		);
+		}
+		if (pInvestorPosition && bIsLast) {
+			reqQueryInvestorPosition();
+		}
+
 		
 	}
 }
@@ -309,13 +325,21 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "成交价格： " << pTrade->Price << std::endl;
 	tradeLog->stringLog << "成交量： " << pTrade->Volume << std::endl;
 	tradeLog->stringLog << "开平仓方向： " << pTrade->Direction << std::endl;
-	tradeLog->stringLog << pTrade->OffsetFlag << std::endl;
+	tradeLog->stringLog << "开平标志: "<<pTrade->OffsetFlag << std::endl;
 	tradeLog->logInfo();
-	PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
-	if (strategy) {
-		strategy->statusDone();
-		tradeLog->logInfo("******Trade success******");
+	if (pTrade->OffsetFlag = THOST_FTDC_OF_CloseToday) {
+		reqQueryInvestorPosition();
 	}
+	else if (pTrade->OffsetFlag = THOST_FTDC_OF_Open) {
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
+		if (strategy) {
+			strategy->statusDone();
+			tradeLog->logInfo("******Trade success******");
+			strategy->addCurVolume(pTrade->Volume);
+		}
+		
+	}
+	
 }
 
 bool CustomTradeSpi::isErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
@@ -509,7 +533,7 @@ void CustomTradeSpi::reqOrderInsert()
 	///数量：1
 	orderInsertReq.VolumeTotalOriginal = 1;
 	///有效期类型: 当日有效
-	orderInsertReq.TimeCondition = THOST_FTDC_TC_GFD;
+	orderInsertReq.TimeCondition = THOST_FTDC_TC_IOC;
 	///成交量类型: 任何数量
 	orderInsertReq.VolumeCondition = THOST_FTDC_VC_AV;
 	///最小成交量: 1
@@ -603,7 +627,7 @@ void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderIn
 		///组合投机套保标志
 		orderInsertReq.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
 		///有效期类型: 当日有效
-		orderInsertReq.TimeCondition = THOST_FTDC_TC_GFD;
+		orderInsertReq.TimeCondition = THOST_FTDC_TC_IOC;
 		///成交量类型: 任何数量
 		orderInsertReq.VolumeCondition = THOST_FTDC_VC_AV;
 
