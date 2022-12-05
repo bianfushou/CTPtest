@@ -160,8 +160,13 @@ void CustomTradeSpi::OnRspQryInstrument(
 		tradeLog->stringLog << "当前交易状态： " << pInstrument->IsTrading << std::endl;
 		tradeLog->logInfo();
 		// 请求查询投资者资金账户
+		InstrumentFieldMap[std::string(pInstrument->InstrumentID)]= *pInstrument;
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInstrument->InstrumentID)].get());
+		if (strategy) {
+			strategy->setInstrumentField(*pInstrument);
+		}
 		if (bIsLast) {
-			InstrumentFieldMap.emplace(std::string(pInstrument->InstrumentID), *pInstrument);
+			
 			reqQueryTradingAccount();
 		}
 	}
@@ -210,6 +215,7 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInvestorPosition->InstrumentID)].get());
 			if (strategy && (strategy->getStatus() == 0 || strategy->getStatus() == 8)) {
 				strategy->clearInvestor(*pInvestorPosition);
+				strategy->start();
 			}
 		}
 		else {
@@ -240,9 +246,6 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 					);
 				}
 			}
-		}
-		if (pInvestorPosition && bIsLast) {
-			reqQueryInvestorPosition();
 		}
 
 		
@@ -328,7 +331,10 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "开平标志: "<<pTrade->OffsetFlag << std::endl;
 	tradeLog->logInfo();
 	if (pTrade->OffsetFlag = THOST_FTDC_OF_CloseToday) {
-		reqQueryInvestorPosition();
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
+		if (strategy && strategy->getTradeStart()) {
+			reqQueryInvestorPosition();
+		}
 	}
 	else if (pTrade->OffsetFlag = THOST_FTDC_OF_Open) {
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
@@ -615,11 +621,13 @@ void CustomTradeSpi::reqOrderInsert(
 
 void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderInsertReqPtr, bool isDefault) {
 	CThostFtdcInputOrderField& orderInsertReq = *orderInsertReqPtr;
+	strcpy(orderInsertReq.BrokerID, gBrokerID);
+	///投资者代码
+	strcpy(orderInsertReq.InvestorID, gInvesterID);
+	strcpy(orderInsertReq.UserID, gInvesterID);
+	strcpy_s(orderInsertReq.ExchangeID, InstrumentFieldMap[orderInsertReq.InstrumentID].ExchangeID);
 	if (isDefault) {
-		strcpy(orderInsertReq.BrokerID, gBrokerID);
-		///投资者代码
-		strcpy(orderInsertReq.InvestorID, gInvesterID);
-		strcpy(orderInsertReq.UserID, gInvesterID);
+		
 		///报单引用
 		//strcpy(orderInsertReq.OrderRef, order_ref);
 		///报单价格条件: 限价
@@ -630,8 +638,6 @@ void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderIn
 		orderInsertReq.TimeCondition = THOST_FTDC_TC_IOC;
 		///成交量类型: 任何数量
 		orderInsertReq.VolumeCondition = THOST_FTDC_VC_AV;
-
-		strcpy_s(orderInsertReq.ExchangeID, InstrumentFieldMap[orderInsertReq.InstrumentID].ExchangeID);
 		///最小成交量: 1
 		orderInsertReq.MinVolume = 1;
 		///触发条件: 立即
@@ -648,7 +654,7 @@ void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderIn
 	int rt = g_pTradeUserApi->ReqOrderInsert(orderInsertReqPtr.get(), ++requestID);
 	if (!rt) {
 		tradeLog->logInfo(">>>>>>发送报单录入请求成功");
-		curReqFun = [this, orderInsertReqPtr, isDefault]() {this->reqOrder(orderInsertReqPtr, isDefault); };
+		curReqFun = [this, orderInsertReqPtr]() {this->reqOrder(orderInsertReqPtr, false); };
 	}
 	else if (rt == -2 || rt == -3) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));

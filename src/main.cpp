@@ -73,8 +73,8 @@ int main()
 	//CThostFtdcTraderSpi *pTradeSpi = new CustomTradeSpi;
 	CustomTradeSpi *pTradeSpi = new CustomTradeSpi;               // 创建交易回调实例
 	g_pTradeUserApi->RegisterSpi(pTradeSpi);                      // 注册事件类
-	g_pTradeUserApi->SubscribePublicTopic(THOST_TERT_RESTART);    // 订阅公共流
-	g_pTradeUserApi->SubscribePrivateTopic(THOST_TERT_RESTART);   // 订阅私有流
+	g_pTradeUserApi->SubscribePublicTopic(THOST_TERT_RESUME);    // 订阅公共流
+	g_pTradeUserApi->SubscribePrivateTopic(THOST_TERT_RESUME);   // 订阅私有流
 	g_pTradeUserApi->RegisterFront(gTradeFrontAddr);              // 设置交易前置地址
 	g_pTradeUserApi->Init();                                      // 连接运行
 	
