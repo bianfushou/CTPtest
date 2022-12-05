@@ -220,8 +220,8 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 		// 策略交易
 		tradeLog->logInfo("=====开始进入策略交易=====" );
 		std::string tradeInstrumentID(g_pTradeInstrumentID);
-		reqOrderInsert();
-		/*
+		//reqOrderInsert();
+		
 		tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
 				while (loginFlag && !taskStop) {
 					std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -229,7 +229,7 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				}
 			}
 		);
-		*/
+		
 	}
 }
 
@@ -309,6 +309,7 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "成交价格： " << pTrade->Price << std::endl;
 	tradeLog->stringLog << "成交量： " << pTrade->Volume << std::endl;
 	tradeLog->stringLog << "开平仓方向： " << pTrade->Direction << std::endl;
+	tradeLog->stringLog << pTrade->OffsetFlag << std::endl;
 	tradeLog->logInfo();
 	PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
 	if (strategy) {
@@ -484,7 +485,7 @@ void CustomTradeSpi::reqQueryInvestorPosition()
 void CustomTradeSpi::reqOrderInsert()
 {
 	CThostFtdcInputOrderField orderInsertReq;
-	memset(&orderInsertReq, 0, sizeof(orderInsertReq));
+	memset(&orderInsertReq, 0, sizeof(CThostFtdcInputOrderField));
 	///经纪公司代码
 	strcpy(orderInsertReq.BrokerID, gBrokerID);
 	///投资者代码
@@ -589,7 +590,7 @@ void CustomTradeSpi::reqOrderInsert(
 }
 
 void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderInsertReqPtr, bool isDefault) {
-	auto orderInsertReq = *orderInsertReqPtr;
+	CThostFtdcInputOrderField& orderInsertReq = *orderInsertReqPtr;
 	if (isDefault) {
 		strcpy(orderInsertReq.BrokerID, gBrokerID);
 		///投资者代码

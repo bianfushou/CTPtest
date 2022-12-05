@@ -13,7 +13,6 @@
 #include <list>
 #include <fstream>
 #include <mutex>
-#include <queue>
 
 typedef void(*reqOrderInsertFun)(
 	TThostFtdcInstrumentIDType instrumentID,
@@ -91,7 +90,7 @@ private:
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
 	
-	std::queue<std::function<void()>> taskQue;
+	std::list<std::function<void()>> taskQue;
 
 
 	double pivot(Strategy::Type type);
