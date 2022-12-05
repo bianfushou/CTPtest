@@ -88,8 +88,6 @@ struct CThostFtdcRspUserLoginField
 	TThostFtdcTimeType	INETime;
 	///后台版本信息
 	TThostFtdcSysVersionType	SysVersion;
-	///广期所时间
-	TThostFtdcTimeType	GFEXTime;
 };
 
 ///用户登出请求
@@ -843,7 +841,7 @@ struct CThostFtdcInvestorPositionField
 	TThostFtdcVolumeType	YdStrikeFrozen;
 	///投资单元代码
 	TThostFtdcInvestUnitIDType	InvestUnitID;
-	///持仓成本差值
+	///大商所持仓成本差值，只有大商所使用
 	TThostFtdcMoneyType	PositionCostOffset;
 	///tas持仓手数
 	TThostFtdcVolumeType	TasPosition;
@@ -2376,7 +2374,7 @@ struct CThostFtdcSyncingInvestorPositionField
 	TThostFtdcVolumeType	YdStrikeFrozen;
 	///投资单元代码
 	TThostFtdcInvestUnitIDType	InvestUnitID;
-	///持仓成本差值
+	///大商所持仓成本差值，只有大商所使用
 	TThostFtdcMoneyType	PositionCostOffset;
 	///tas持仓手数
 	TThostFtdcVolumeType	TasPosition;
@@ -5787,7 +5785,7 @@ struct CThostFtdcInvestorPositionDetailField
 	TThostFtdcVolumeType	CloseVolume;
 	///平仓金额
 	TThostFtdcMoneyType	CloseAmount;
-	///先开先平剩余数量
+	///先开先平剩余数量（DCE）
 	TThostFtdcVolumeType	TimeFirstVolume;
 	///投资单元代码
 	TThostFtdcInvestUnitIDType	InvestUnitID;
@@ -10229,7 +10227,7 @@ struct CThostFtdcRiskSettleInvstPositionField
 	TThostFtdcVolumeType	YdStrikeFrozen;
 	///投资单元代码
 	TThostFtdcInvestUnitIDType	InvestUnitID;
-	///持仓成本差值
+	///大商所持仓成本差值，只有大商所使用
 	TThostFtdcMoneyType	PositionCostOffset;
 	///tas持仓手数
 	TThostFtdcVolumeType	TasPosition;
@@ -10329,7 +10327,7 @@ struct CThostFtdcSyncDeltaInvstPosDtlField
 	TThostFtdcVolumeType	CloseVolume;
 	///平仓金额
 	TThostFtdcMoneyType	CloseAmount;
-	///先开先平剩余数量
+	///先开先平剩余数量（DCE）
 	TThostFtdcVolumeType	TimeFirstVolume;
 	///特殊持仓标志
 	TThostFtdcSpecPosiTypeType	SpecPosiType;

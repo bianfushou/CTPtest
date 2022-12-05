@@ -669,9 +669,9 @@ typedef char TThostFtdcProductClassType;
 #define THOST_FTDC_APC_Futures '3'
 ///可交易期权(含期权组合和期权单一合约)
 #define THOST_FTDC_APC_Options '4'
-///可下单套利组合
+///可下单组合（目前包含DCE和ZCE的期货组合）
 #define THOST_FTDC_APC_TradingComb '5'
-///可申请的组合（可以申请的组合合约 包含可以交易的合约）
+///可申请的组合（dce可以申请的组合合约 包含dce可以交易的合约）
 #define THOST_FTDC_APC_UnTradingComb '6'
 ///所有可以交易合约
 #define THOST_FTDC_APC_AllTrading '7'
@@ -763,9 +763,9 @@ typedef char TThostFtdcRatioAttrType;
 #define THOST_FTDC_HF_Hedge '3'
 ///做市商
 #define THOST_FTDC_HF_MarketMaker '5'
-///第一腿投机第二腿套保
+///第一腿投机第二腿套保 大商所专用
 #define THOST_FTDC_HF_SpecHedge '6'
-///第一腿套保第二腿投机
+///第一腿套保第二腿投机  大商所专用
 #define THOST_FTDC_HF_HedgeSpec '7'
 
 typedef char TThostFtdcHedgeFlagType;

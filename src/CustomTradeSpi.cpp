@@ -586,6 +586,7 @@ void CustomTradeSpi::reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderIn
 		strcpy(orderInsertReq.BrokerID, gBrokerID);
 		///投资者代码
 		strcpy(orderInsertReq.InvestorID, gInvesterID);
+		strcpy(orderInsertReq.UserID, gInvesterID);
 		///报单引用
 		//strcpy(orderInsertReq.OrderRef, order_ref);
 		///报单价格条件: 限价

@@ -68,8 +68,9 @@ void PivotReversalStrategy::operator()()
 			strcpy(orderInsertReq->InstrumentID, instrumentID.c_str());
 			orderInsertReq->Direction = THOST_FTDC_D_Buy;
 			orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-			orderInsertReq->LimitPrice = tickToKlineObject.lastPrice * volume;
-			orderInsertReq->VolumeTotalOriginal = volume;
+			orderInsertReq->LimitPrice = tickToKlineObject.lastPrice;
+			orderInsertReq->VolumeTotalOriginal = 1;
+			orderInsertReq->StopPrice = 0;
 			customTradeSpi->reqOrder(orderInsertReq);
 			
 			status = 8 | 1;
@@ -85,6 +86,7 @@ void PivotReversalStrategy::operator()()
 				orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Close;
 				orderInsertReq->LimitPrice = tickToKlineObject.lastPrice * volume;
 				orderInsertReq->VolumeTotalOriginal = volume;
+				orderInsertReq->StopPrice = 0;
 				customTradeSpi->reqOrder(orderInsertReq);
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
@@ -101,6 +103,7 @@ void PivotReversalStrategy::operator()()
 					orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
 					orderInsertReq->LimitPrice = tickToKlineObject.lastPrice * volume;
 					orderInsertReq->VolumeTotalOriginal = volume;
+					orderInsertReq->StopPrice = 0;
 					customTradeSpi->reqOrder(orderInsertReq);
 					status = 8 | 1;
 				}
@@ -123,6 +126,7 @@ void PivotReversalStrategy::operator()()
 			orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
 			orderInsertReq->LimitPrice = tickToKlineObject.lastPrice * volume;
 			orderInsertReq->VolumeTotalOriginal = volume;
+			orderInsertReq->StopPrice = 0;
 			customTradeSpi->reqOrder(orderInsertReq);
 			status = 8 | 2;
 		}
@@ -137,6 +141,7 @@ void PivotReversalStrategy::operator()()
 				orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Close;
 				orderInsertReq->LimitPrice = tickToKlineObject.lastPrice * volume;
 				orderInsertReq->VolumeTotalOriginal = volume;
+				orderInsertReq->StopPrice = 0;
 				customTradeSpi->reqOrder(orderInsertReq);
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
@@ -153,6 +158,7 @@ void PivotReversalStrategy::operator()()
 					orderInsertReq->CombOffsetFlag[0] = THOST_FTDC_OF_Open;
 					orderInsertReq->LimitPrice = tickToKlineObject.lastPrice * volume;
 					orderInsertReq->VolumeTotalOriginal = volume;
+					orderInsertReq->StopPrice = 0;
 					customTradeSpi->reqOrder(orderInsertReq);
 					status = 8 | 2;
 				}

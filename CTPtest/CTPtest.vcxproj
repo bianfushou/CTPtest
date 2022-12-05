@@ -26,6 +26,7 @@
     <ClCompile Include="..\src\TickToKlineHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\Config.h" />
     <ClInclude Include="..\src\CustomMdSpi.h" />
     <ClInclude Include="..\src\CustomTradeSpi.h" />
     <ClInclude Include="..\src\log.h" />
@@ -85,8 +86,8 @@
     <LibraryPath>..\src\CTP_API;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\src\CTP_API;$(IncludePath)</IncludePath>
-    <LibraryPath>..\src\CTP_API;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\src\CTPTest_API;$(IncludePath)</IncludePath>
+    <LibraryPath>..\src\CTPTest_API;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
