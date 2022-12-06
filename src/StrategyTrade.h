@@ -136,7 +136,7 @@ public:
 		customTradeSpi->reqOrder(orderInsertReq, false);
 	}
 
-	void clearInvestor(CThostFtdcInvestorPositionField investor);
+	void clearInvestor(CThostFtdcInvestorPositionField investor, int status);
 
 	void addCurVolume(TThostFtdcVolumeType v) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
@@ -182,7 +182,7 @@ private:
 	bool opStart = false;
 	
 	std::list<std::function<void()>> taskQue;
-	TThostFtdcVolumeType curVolume;
+	TThostFtdcVolumeType curVolume = 0;
 	CThostFtdcInstrumentField instrumentField;
 	double pivot(Strategy::Type type);
 };

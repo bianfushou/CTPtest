@@ -213,12 +213,19 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			tradeLog->stringLog << "占用保证金：" << pInvestorPosition->UseMargin << std::endl;
 			tradeLog->logInfo();
 			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInvestorPosition->InstrumentID)].get());
+			static int status = 3;
 			if (strategy && (strategy->getStatus() == 0 || strategy->getStatus() == 8)) {
-				strategy->clearInvestor(*pInvestorPosition);
+				strategy->clearInvestor(*pInvestorPosition, status);
 				strategy->start();
 			}
 			if (bIsLast) {
-				lastQuery = true;
+				if (status & 1 != 0 && pInvestorPosition->YdPosition > 0) {
+					lastQuery = true;
+				}
+
+				if (status & 2 != 0 && pInvestorPosition->Position > 0) {
+					lastQuery = true;
+				}
 			}
 		}
 		else {
@@ -349,9 +356,9 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	else if (pTrade->OffsetFlag = THOST_FTDC_OF_Open) {
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
 		if (strategy) {
+			strategy->addCurVolume(pTrade->Volume);
 			strategy->statusDone();
 			tradeLog->logInfo("******Trade success******");
-			strategy->addCurVolume(pTrade->Volume);
 		}
 		
 	}
