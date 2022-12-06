@@ -213,9 +213,9 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			tradeLog->stringLog << "占用保证金：" << pInvestorPosition->UseMargin << std::endl;
 			tradeLog->logInfo();
 			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInvestorPosition->InstrumentID)].get());
-			static int status = 3;
+			static int status = 0;
 			if (strategy && (strategy->getStatus() == 0 || strategy->getStatus() == 8)) {
-				strategy->clearInvestor(*pInvestorPosition, status);
+				strategy->clearInvestor(*pInvestorPosition, status, bIsLast);
 				strategy->start();
 			}
 			if (bIsLast) {
@@ -229,11 +229,6 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			}
 		}
 		else {
-			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
-			if (strategy && strategy->getStatus() == 8) {
-				strategy->statusDone();
-				tradeLog->logInfo("******Trade success******");
-			}
 			tradeLog->logInfo("----->该合约未持仓");
 
 			// 报单录入请求（这里是一部接口，此处是按顺序执行）
@@ -241,8 +236,8 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				reqOrderInsert();*/
 				//if (loginFlag)
 				//	reqOrderInsertWithParams(g_pTradeInstrumentID, gLimitPrice, 1, gTradeDirection); // 自定义一笔交易
-			
 		}
+
 		if (bIsLast) {
 			// 策略交易
 			//reqOrderInsert();
@@ -259,8 +254,6 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				);
 			}
 		}
-
-		
 	}
 }
 
@@ -348,9 +341,7 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 			strategy->subCurVolume(pTrade->Volume, pTrade->Direction, pTrade->OffsetFlag);
 		}
 		else if (strategy && strategy->getTradeStart() && lastQuery) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-			reqQueryInvestorPosition();
-			lastQuery = false;
+			strategy->clearStatus(pTrade->Volume);
 		}
 	}
 	else if (pTrade->OffsetFlag = THOST_FTDC_OF_Open) {

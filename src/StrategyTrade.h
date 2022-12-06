@@ -136,7 +136,39 @@ public:
 		customTradeSpi->reqOrder(orderInsertReq, false);
 	}
 
-	void clearInvestor(CThostFtdcInvestorPositionField investor, int status);
+	void makeClearLimitOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
+		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
+		memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
+		strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
+		orderInsertReq->Direction = direction;
+		orderInsertReq->CombOffsetFlag[0] = offsetFlag;
+		orderInsertReq->LimitPrice = lastPrice;
+		orderInsertReq->VolumeTotalOriginal = volume;
+		//orderInsertReq->StopPrice = 0;
+		///报单引用
+		//strcpy(orderInsertReq.OrderRef, order_ref);
+		///报单价格条件: 限价
+		orderInsertReq->OrderPriceType = THOST_FTDC_OPT_LimitPrice;
+		///组合投机套保标志
+		orderInsertReq->CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
+		///有效期类型: 当日有效
+		orderInsertReq->TimeCondition = THOST_FTDC_TC_IOC;
+		///成交量类型: 任何数量
+		orderInsertReq->VolumeCondition = THOST_FTDC_VC_AV;
+		///最小成交量: 1
+		orderInsertReq->MinVolume = 1;
+		///触发条件: 立即
+		orderInsertReq->ContingentCondition = THOST_FTDC_CC_Immediately;
+		///强平原因: 非强平
+		orderInsertReq->ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
+		///自动挂起标志: 否
+		orderInsertReq->IsAutoSuspend = 0;
+		///用户强评标志: 否
+		//orderInsertReq.UserForceClose = 0;
+		customTradeSpi->reqOrder(orderInsertReq, false);
+	}
+
+	void clearInvestor(CThostFtdcInvestorPositionField investor, int status, bool isLast);
 
 	void addCurVolume(TThostFtdcVolumeType v) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
@@ -162,8 +194,14 @@ public:
 		if (strcmp(field.InstrumentID, instrumentID.c_str()) == 0) {
 			instrumentField = field;
 		}
-		
 	}
+	void clearStatus(int v) {
+		if (MvStatus == 1) {
+			initVolume -= v;
+			//customTradeSpi->reqQueryInvestorPosition();
+		}
+	}
+	
 private:
 	std::ofstream outFile;
 	std::mutex strategyMutex;
@@ -179,9 +217,12 @@ private:
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
 
+	int initVolume = 0;
+	bool last = false;
 	bool opStart = false;
-	
+	int MvStatus = 0;
 	std::list<std::function<void()>> taskQue;
+	std::vector<std::thread> tasks;
 	TThostFtdcVolumeType curVolume = 0;
 	CThostFtdcInstrumentField instrumentField;
 	double pivot(Strategy::Type type);

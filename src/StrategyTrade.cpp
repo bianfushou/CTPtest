@@ -33,7 +33,13 @@ void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeS
 
 void PivotReversalStrategy::operator()()
 {
+	if(!tasks.empty()){
+		tasks.back().join();
+	}
 	opStart = true;
+	if (MvStatus == 1 && initVolume > 0) {
+		customTradeSpi->reqQueryInvestorPosition();
+	}
 	if (status >= 8) {
 		return;
 	}
@@ -136,55 +142,79 @@ void PivotReversalStrategy::operator()()
 	}
 }
 
-void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField investor, int status) {
-	
-	std::lock_guard<std::mutex> lk(strategyMutex);
+void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField investor, int status, bool isLast) {
 	if (status <= 0) {
 		return;
 	}
-	if (status & 1 != 0) {
-		if (investor.PosiDirection == THOST_FTDC_PD_Long) {
-			this->longInvestor = investor;
-			if (instrumentField.MaxMarketOrderVolume < investor.YdPosition) {
-				makeClearOrder(0, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, instrumentField.MaxMarketOrderVolume / 2);
-			}
-			else if (investor.YdPosition > 0) {
-				makeClearOrder(0, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, investor.YdPosition);
-			}
-		}
-		else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
-			shortInvestor = investor;
-			if (instrumentField.MaxMarketOrderVolume < investor.YdPosition) {
-				makeClearOrder(0, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, instrumentField.MaxMarketOrderVolume / 2);
-			}
-			else if (investor.YdPosition > 0) {
-				makeClearOrder(0, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, investor.YdPosition);
-			}
+	tasks.emplace_back([this, investor, status, isLast]() {
 
-		}
-	}
-	if (status & 2 != 0) {
-		if (investor.PosiDirection == THOST_FTDC_PD_Long) {
-			this->longInvestor = investor;
-			if (instrumentField.MaxMarketOrderVolume < investor.Position) {
-				makeClearOrder(0, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, instrumentField.MaxMarketOrderVolume / 2);
-			}
-			else if (investor.Position > 0) {
-				makeClearOrder(0, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, investor.Position);
-			}
-		}
-		else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
-			shortInvestor = investor;
-			if (instrumentField.MaxMarketOrderVolume < investor.Position) {
-				makeClearOrder(0, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, instrumentField.MaxMarketOrderVolume / 2);
-			}
-			else if (investor.Position > 0) {
-				makeClearOrder(0, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, investor.Position);
-			}
+		std::lock_guard<std::mutex> lk(strategyMutex);
 
+		TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
+		if (status & 1 != 0) {
+			if (investor.PosiDirection == THOST_FTDC_PD_Long) {
+				this->longInvestor = investor;
+				if (instrumentField.MaxMarketOrderVolume < investor.YdPosition) {
+					for (int p = investor.Position; p > 0; p-=5) {
+						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+						makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, p > 5 ? 5: p);
+					}
+				}
+				else if (investor.YdPosition > 0) {
+					makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, investor.YdPosition);
+				}
+			}
+			else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
+				shortInvestor = investor;
+				if (instrumentField.MaxMarketOrderVolume < investor.YdPosition) {
+					for (int p = investor.Position; p > 0; p-=5) {
+						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+						makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, p > 5 ? 5 : p);
+					}
+				}
+				else if (investor.YdPosition > 0) {
+					makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, investor.YdPosition);
+				}
+
+			}
 		}
-	}
-	
+		if (status & 2 != 0) {
+			if (investor.PosiDirection == THOST_FTDC_PD_Long) {
+				this->longInvestor = investor;
+				if (instrumentField.MaxMarketOrderVolume < investor.Position) {
+					for (int p = investor.Position; p > 0; p-=5) {
+						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+						makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, p > 5 ? 5 : p);
+					}
+
+				}
+				else if (investor.Position > 0) {
+					makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, investor.Position);
+				}
+			}
+			else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
+				shortInvestor = investor;
+				if (instrumentField.MaxMarketOrderVolume < investor.Position) {
+					for (int p = investor.Position; p > 0; p-=5) {
+						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+						makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, p > 5 ? 5 : p);
+					}
+				}
+				else if (investor.Position > 0) {
+					makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, investor.Position);
+				}
+
+			}
+		}
+
+		if (!last) {
+			initVolume = initVolume + investor.Position + investor.YdPosition;
+		}
+		if (isLast) {
+			last = true;
+		}
+		MvStatus = 1;
+	});
 }
 
 double PivotReversalStrategy::pivot(Strategy::Type type) {

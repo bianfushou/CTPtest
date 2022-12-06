@@ -81,6 +81,7 @@ public:
 		TThostFtdcVolumeType volume,
 		TThostFtdcDirectionType direction); // 个性化报单录入，外部调用
 	void reqOrder(std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq, bool isDefault = true);
+	void reqQueryInvestorPosition(); // 请求查询投资者持仓
 
 private:
 	void reqAuthenticate();
@@ -89,7 +90,6 @@ private:
 	void reqSettlementInfoConfirm(); // 投资者结果确认
 	void reqQueryInstrument(); // 请求查询合约
 	void reqQueryTradingAccount(); // 请求查询资金帐户
-	void reqQueryInvestorPosition(); // 请求查询投资者持仓
 	void reqOrderInsert(); // 请求报单录入
 	
 	void reqOrderAction(CThostFtdcOrderField *pOrder); // 请求报单操作
