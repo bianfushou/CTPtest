@@ -142,6 +142,18 @@ public:
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume += v;
 	}
+
+	void subCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag) {
+		std::lock_guard<std::mutex> lk(strategyMutex);
+		curVolume -= v;
+		if (curVolume > 0) {
+			makeClearOrder(0, direction, offsetFlag, curVolume);
+		}
+		else {
+			status = 0;
+		}
+	}
+
 	bool getOpStart() {
 		return opStart;
 	}

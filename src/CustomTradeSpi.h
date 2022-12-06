@@ -98,7 +98,7 @@ private:
 	bool isTradingOrder(CThostFtdcOrderField *pOrder); // 是否正在交易的报单
 
 	std::function<void()> curReqFun = []() {throw "null"; };
-
+	bool lastQuery = false;
 	Logger* tradeLog = nullptr;
 	std::vector<std::thread> tradeStrategyTasks;
 	std::unordered_map<std::string, CThostFtdcInstrumentField> InstrumentFieldMap;

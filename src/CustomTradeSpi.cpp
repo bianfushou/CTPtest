@@ -217,6 +217,9 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				strategy->clearInvestor(*pInvestorPosition);
 				strategy->start();
 			}
+			if (bIsLast) {
+				lastQuery = true;
+			}
 		}
 		else {
 			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
@@ -231,20 +234,22 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				reqOrderInsert();*/
 				//if (loginFlag)
 				//	reqOrderInsertWithParams(g_pTradeInstrumentID, gLimitPrice, 1, gTradeDirection); // 自定义一笔交易
-			if (bIsLast) {
-				// 策略交易
+			
+		}
+		if (bIsLast) {
+			// 策略交易
+			//reqOrderInsert();
+			if (tradeStrategyTasks.empty()) {
 				tradeLog->logInfo("=====开始进入策略交易=====");
 				std::string tradeInstrumentID(g_pTradeInstrumentID);
-				//reqOrderInsert();
-				if (tradeStrategyTasks.empty()) {
-					tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
-						while (loginFlag && !taskStop) {
-							std::this_thread::sleep_for(std::chrono::milliseconds(50));
-							g_StrategyMap[tradeInstrumentID]->operator()();
-						}
+				g_StrategyMap[tradeInstrumentID]->start();
+				tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
+					while (loginFlag && !taskStop) {
+						std::this_thread::sleep_for(std::chrono::milliseconds(50));
+						g_StrategyMap[tradeInstrumentID]->operator()();
 					}
-					);
 				}
+				);
 			}
 		}
 
@@ -332,8 +337,13 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->logInfo();
 	if (pTrade->OffsetFlag = THOST_FTDC_OF_CloseToday) {
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
-		if (strategy && strategy->getTradeStart()) {
+		if (strategy && strategy->getOpStart()) {
+			strategy->subCurVolume(pTrade->Volume, pTrade->Direction, pTrade->OffsetFlag);
+		}
+		else if (strategy && strategy->getTradeStart() && lastQuery) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 			reqQueryInvestorPosition();
+			lastQuery = false;
 		}
 	}
 	else if (pTrade->OffsetFlag = THOST_FTDC_OF_Open) {
