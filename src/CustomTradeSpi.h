@@ -103,4 +103,6 @@ private:
 	std::vector<std::thread> tradeStrategyTasks;
 	std::unordered_map<std::string, CThostFtdcInstrumentField> InstrumentFieldMap;
 	bool taskStop = false;
+	int status = 0;
+	int step = 0;
 };

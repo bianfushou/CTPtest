@@ -13,6 +13,7 @@
 #include <list>
 #include <fstream>
 #include <mutex>
+#include <atomic>
 
 typedef void(*reqOrderInsertFun)(
 	TThostFtdcInstrumentIDType instrumentID,
@@ -79,6 +80,7 @@ public:
 
 	void resetStatus() {
 		std::lock_guard<std::mutex> lk(strategyMutex);
+		taskQue.clear();
 		status = preStatus;
 	}
 	void statusDone() {
@@ -173,16 +175,22 @@ public:
 	void addCurVolume(TThostFtdcVolumeType v) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume += v;
+		if (status >= 8) {
+			status -= 8;
+		}
 	}
 
 	void subCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume -= v;
 		if (curVolume > 0) {
-			makeClearOrder(0, direction, offsetFlag, curVolume);
+			makeClearOrder(0, direction, offsetFlag, curVolume.load());
+		}
+		else if(curVolume == 0){
+			status = 0;
 		}
 		else {
-			status = 0;
+			throw "error";
 		}
 	}
 
@@ -223,7 +231,7 @@ private:
 	int MvStatus = 0;
 	std::list<std::function<void()>> taskQue;
 	std::vector<std::thread> tasks;
-	TThostFtdcVolumeType curVolume = 0;
+	std::atomic<int> curVolume = 0;
 	CThostFtdcInstrumentField instrumentField;
 	double pivot(Strategy::Type type);
 };

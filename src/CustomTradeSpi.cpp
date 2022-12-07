@@ -213,24 +213,29 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			tradeLog->stringLog << "占用保证金：" << pInvestorPosition->UseMargin << std::endl;
 			tradeLog->logInfo();
 			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInvestorPosition->InstrumentID)].get());
-			static int status = 0;
-			if (strategy && (strategy->getStatus() == 0 || strategy->getStatus() == 8)) {
+			if (strategy && strategy->getStatus() == 0 && !strategy->getOpStart()) {
 				strategy->clearInvestor(*pInvestorPosition, status, bIsLast);
 				strategy->start();
 			}
 			if (bIsLast) {
-				if (status & 1 != 0 && pInvestorPosition->YdPosition > 0) {
-					lastQuery = true;
+				if (status == 0 && step == 0) {
+				//if (step == 0) {
+					step = 1;
 				}
-
-				if (status & 2 != 0 && pInvestorPosition->Position > 0) {
-					lastQuery = true;
+				else if (status == 0 && step == 0) {
+					std::thread fatch([this]() {
+						std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+						this->reqQueryInvestorPosition();
+					});
 				}
 			}
 		}
 		else {
 			tradeLog->logInfo("----->该合约未持仓");
 
+			if (step == 0) {
+				step = 1;
+			}
 			// 报单录入请求（这里是一部接口，此处是按顺序执行）
 			/*if (loginFlag)
 				reqOrderInsert();*/
@@ -238,16 +243,18 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				//	reqOrderInsertWithParams(g_pTradeInstrumentID, gLimitPrice, 1, gTradeDirection); // 自定义一笔交易
 		}
 
-		if (bIsLast) {
+		if (bIsLast && step == 1) {
 			// 策略交易
 			//reqOrderInsert();
+			step == 2;
 			if (tradeStrategyTasks.empty()) {
 				tradeLog->logInfo("=====开始进入策略交易=====");
 				std::string tradeInstrumentID(g_pTradeInstrumentID);
 				g_StrategyMap[tradeInstrumentID]->start();
 				tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
+					std::this_thread::sleep_for(std::chrono::milliseconds(15000));
 					while (loginFlag && !taskStop) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(50));
+						std::this_thread::sleep_for(std::chrono::milliseconds(100));
 						g_StrategyMap[tradeInstrumentID]->operator()();
 					}
 				}
@@ -335,20 +342,16 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "开平仓方向： " << pTrade->Direction << std::endl;
 	tradeLog->stringLog << "开平标志: "<<pTrade->OffsetFlag << std::endl;
 	tradeLog->logInfo();
-	if (pTrade->OffsetFlag = THOST_FTDC_OF_CloseToday) {
+	if (pTrade->OffsetFlag == THOST_FTDC_OF_CloseToday) {
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
 		if (strategy && strategy->getOpStart()) {
 			strategy->subCurVolume(pTrade->Volume, pTrade->Direction, pTrade->OffsetFlag);
 		}
-		else if (strategy && strategy->getTradeStart() && lastQuery) {
-			strategy->clearStatus(pTrade->Volume);
-		}
 	}
-	else if (pTrade->OffsetFlag = THOST_FTDC_OF_Open) {
+	else if (pTrade->OffsetFlag == THOST_FTDC_OF_Open) {
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
-		if (strategy) {
+		if (strategy && strategy->getOpStart()) {
 			strategy->addCurVolume(pTrade->Volume);
-			strategy->statusDone();
 			tradeLog->logInfo("******Trade success******");
 		}
 		

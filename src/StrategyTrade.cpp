@@ -33,12 +33,9 @@ void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeS
 
 void PivotReversalStrategy::operator()()
 {
-	if(!tasks.empty()){
-		tasks.back().join();
-	}
-	opStart = true;
-	if (MvStatus == 1 && initVolume > 0) {
-		customTradeSpi->reqQueryInvestorPosition();
+	if (!opStart) {
+		opStart = true;
+		curVolume = 0;
 	}
 	if (status >= 8) {
 		return;
@@ -69,7 +66,6 @@ void PivotReversalStrategy::operator()()
 	if (tickToKlineObject.lastPrice > swh) {
 		if (status == 0) {
 			this->preStatus = 0;
-			this->status = this->status | 8;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 			
 			this->status = 8 | 1;
@@ -77,14 +73,12 @@ void PivotReversalStrategy::operator()()
 		else if (status == 2) {
 			preStatus = 2;
 			{
-				status = status | 8;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, volume);
+				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 				this->status = 8;
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swh](){
 				this->preStatus = 0;
-				this->status = this->preStatus | 8;
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
 				if (tickToKlineObject.lastPrice > swh) {
@@ -100,29 +94,26 @@ void PivotReversalStrategy::operator()()
 		}
 		else if (status == 1 && curVolume < volume) {
 			this->preStatus = 1;
-			this->status = 8 | 1;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
+			this->status = 8 | 1;
 		}
 	}
 	if (tickToKlineObject.lastPrice < swl) {
 		if (status == 0) {
 			preStatus = 0;
-			status = status | 8;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
 			status = 8 | 2;
 		}
 		else if (status == 1) {
 			this->preStatus = 1;
-			this->status = this->status | 8;
 			{
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, volume);
+				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
 				this->status = 8;
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swl]() {
-				this->preStatus = 0;
-				this->status = this->preStatus | 8;
 				std::lock_guard<std::mutex> lk(strategyMutex);
+				this->preStatus = 0;
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
 				if (tickToKlineObject.lastPrice < swl) {
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
@@ -157,11 +148,11 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 				if (instrumentField.MaxMarketOrderVolume < investor.YdPosition) {
 					for (int p = investor.Position; p > 0; p-=5) {
 						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-						makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, p > 5 ? 5: p);
+						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, p > 5 ? 5: p);
 					}
 				}
 				else if (investor.YdPosition > 0) {
-					makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, investor.YdPosition);
+					makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, investor.YdPosition);
 				}
 			}
 			else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
@@ -169,11 +160,11 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 				if (instrumentField.MaxMarketOrderVolume < investor.YdPosition) {
 					for (int p = investor.Position; p > 0; p-=5) {
 						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-						makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, p > 5 ? 5 : p);
+						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, p > 5 ? 5 : p);
 					}
 				}
 				else if (investor.YdPosition > 0) {
-					makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, investor.YdPosition);
+					makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, investor.YdPosition);
 				}
 
 			}
@@ -184,12 +175,12 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 				if (instrumentField.MaxMarketOrderVolume < investor.Position) {
 					for (int p = investor.Position; p > 0; p-=5) {
 						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-						makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, p > 5 ? 5 : p);
+						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, p > 5 ? 5 : p);
 					}
 
 				}
 				else if (investor.Position > 0) {
-					makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, investor.Position);
+					makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, investor.Position);
 				}
 			}
 			else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
@@ -197,11 +188,11 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 				if (instrumentField.MaxMarketOrderVolume < investor.Position) {
 					for (int p = investor.Position; p > 0; p-=5) {
 						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-						makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, p > 5 ? 5 : p);
+						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, p > 5 ? 5 : p);
 					}
 				}
 				else if (investor.Position > 0) {
-					makeClearLimitOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, investor.Position);
+					makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, investor.Position);
 				}
 
 			}
