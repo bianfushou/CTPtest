@@ -3,15 +3,31 @@
 #include "Config.h"
 #include <vector>
 #include "CTP_API/ThostFtdcMdApi.h"
+#include "log.h"
 #ifdef CTPTest
 
 #else
 #endif
 
-class CustomMdSpi: public CThostFtdcMdSpi
+class CustomMdSpi : public CThostFtdcMdSpi
 {
+private:
+	
+	void addLogger() {
+		std::string fileName = Logger::initFileName("MdTrade");
+		MdLog = new Logger(fileName);
+	}
+	Logger* MdLog = nullptr;
 	// ---- 继承自CTP父类的回调接口并实现 ---- //
 public:
+	CustomMdSpi() {
+		addLogger();
+	}
+
+	virtual ~CustomMdSpi() {
+		if (MdLog)
+			delete MdLog;
+	}
 	///当客户端与交易后台建立起通信连接时（还未登录前），该方法被调用。
 	void OnFrontConnected();
 

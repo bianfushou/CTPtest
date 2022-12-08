@@ -53,22 +53,26 @@ void PivotReversalStrategy::operator()()
 		if (highPivotQue.empty()) {
 			return;
 		}
-		swh = highPivotQue.back();
+		swh = highPivotQue.back().first;
 	}
 
 	if (swl <= 0.0) {
 		if (lowPivotQue.empty()) {
 			return;
 		}
-		swl = lowPivotQue.back();
+		swl = lowPivotQue.back().first;
 	}
 	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
 	if (tickToKlineObject.lastPrice > swh) {
+		int size = tickToKlineObject.m_KLineDataArray.size();
+		double v = tickToKlineObject.lastPrice - tickToKlineObject.m_KLineDataArray[size - right].high_price;
 		if (status == 0) {
 			this->preStatus = 0;
-			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 			
-			this->status = 8 | 1;
+			if (v < highPivotQue.back().second) {
+				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
+				this->status = 8 | 1;
+			}
 		}
 		else if (status == 2) {
 			preStatus = 2;
@@ -77,11 +81,12 @@ void PivotReversalStrategy::operator()()
 				this->status = 8;
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
-			taskQue.emplace_back([this, swh](){
+			double hv = highPivotQue.back().second;
+			taskQue.emplace_back([this, swh, v, hv](){
 				this->preStatus = 0;
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
-				if (tickToKlineObject.lastPrice > swh) {
+				if (tickToKlineObject.lastPrice > swh && v < hv) {
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 1;
 				}
@@ -99,10 +104,14 @@ void PivotReversalStrategy::operator()()
 		}
 	}
 	if (tickToKlineObject.lastPrice < swl) {
+		int size = tickToKlineObject.m_KLineDataArray.size();
+		double v = tickToKlineObject.lastPrice - tickToKlineObject.m_KLineDataArray[size - right].low_price;
 		if (status == 0) {
 			preStatus = 0;
-			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
-			status = 8 | 2;
+			if (v > lowPivotQue.back().second) {
+				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
+				status = 8 | 2;
+			}
 		}
 		else if (status == 1) {
 			this->preStatus = 1;
@@ -111,11 +120,12 @@ void PivotReversalStrategy::operator()()
 				this->status = 8;
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
-			taskQue.emplace_back([this, swl]() {
+			double lV = lowPivotQue.back().second;
+			taskQue.emplace_back([this, swl, v, lV]() {
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				this->preStatus = 0;
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
-				if (tickToKlineObject.lastPrice < swl) {
+				if (tickToKlineObject.lastPrice < swl && v > lV) {
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 2;
 				}
@@ -127,8 +137,8 @@ void PivotReversalStrategy::operator()()
 		}
 		else if (status == 2 && curVolume < volume) {
 			this->preStatus = 2;
-			this->status = 8 | 2;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
+			this->status = 8 | 2;
 		}
 	}
 }
@@ -282,12 +292,13 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 			}
 		}
 	}
+	double velocity = (pivotArray[0] - pivotArray[right]) / right;
 	if (!isMin) {
-		highPivotQue.push_back(pivotVal);
+		highPivotQue.push_back(std::pair<double, double>(pivotVal, velocity));
 		outFile << "high:" << pivotVal<< std::endl;
 	}
 	else {
-		lowPivotQue.push_back(pivotVal);
+		lowPivotQue.push_back(std::pair<double, double>(pivotVal, velocity));
 		outFile << "low:" << pivotVal << std::endl;
 	}
 	

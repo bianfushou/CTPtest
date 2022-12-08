@@ -213,8 +213,8 @@ public:
 private:
 	std::ofstream outFile;
 	std::mutex strategyMutex;
-	std::list<double> highPivotQue;
-	std::list<double> lowPivotQue;
+	std::list<std::pair<double, double>> highPivotQue;
+	std::list< std::pair<double, double>> lowPivotQue;
 
 	CThostFtdcInvestorPositionField longInvestor;
 	CThostFtdcInvestorPositionField shortInvestor;
