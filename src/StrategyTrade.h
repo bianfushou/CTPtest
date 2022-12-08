@@ -14,6 +14,7 @@
 #include <fstream>
 #include <mutex>
 #include <atomic>
+#include "log.h"
 
 typedef void(*reqOrderInsertFun)(
 	TThostFtdcInstrumentIDType instrumentID,
@@ -65,6 +66,10 @@ protected:
 
 class PivotReversalStrategy: public Strategy {
 public:
+	PivotReversalStrategy(){
+		std::string fileName = Logger::initFileName("PivotStrategy");
+		StLog = new Logger(fileName);
+	}
 	enum Type {
 		open, high, low, close
 	};
@@ -95,6 +100,8 @@ public:
 	}
 
 	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume ) {
+		StLog->stringLog << "lastPrice:" << lastPrice << "direction:" << direction << "offsetFlag:" << offsetFlag << "volume:"<<volume;
+		StLog->logInfo();
 		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 		memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 		strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
@@ -107,6 +114,8 @@ public:
 	}
 
 	void makeClearOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
+		StLog->stringLog << "==AnyPrice=="<<"lastPrice:" << lastPrice << "direction:" << direction << "offsetFlag:" << offsetFlag << "volume:" << volume;
+		StLog->logInfo();
 		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 		memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 		strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
@@ -139,6 +148,8 @@ public:
 	}
 
 	void makeClearLimitOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
+		StLog->stringLog << "==LimitPrice=="<<"lastPrice:" << lastPrice << "direction:" << direction << "offsetFlag:" << offsetFlag << "volume:" << volume;
+		StLog->logInfo();
 		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 		memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 		strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
@@ -224,6 +235,8 @@ private:
 	int right;
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
+
+	Logger* StLog = nullptr;
 
 	int initVolume = 0;
 	bool last = false;

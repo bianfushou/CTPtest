@@ -69,7 +69,7 @@ void PivotReversalStrategy::operator()()
 		if (status == 0) {
 			this->preStatus = 0;
 			
-			if (v < highPivotQue.back().second) {
+			if (v > -(highPivotQue.back().second)) {
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 				this->status = 8 | 1;
 			}
@@ -78,7 +78,7 @@ void PivotReversalStrategy::operator()()
 			preStatus = 2;
 			{
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
-				this->status = 8;
+				//this->status = 8;
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			double hv = highPivotQue.back().second;
@@ -86,7 +86,7 @@ void PivotReversalStrategy::operator()()
 				this->preStatus = 0;
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
-				if (tickToKlineObject.lastPrice > swh && v < hv) {
+				if (tickToKlineObject.lastPrice > swh && v > -hv) {
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 1;
 				}
@@ -108,7 +108,7 @@ void PivotReversalStrategy::operator()()
 		double v = tickToKlineObject.lastPrice - tickToKlineObject.m_KLineDataArray[size - right].low_price;
 		if (status == 0) {
 			preStatus = 0;
-			if (v > lowPivotQue.back().second) {
+			if (-v > lowPivotQue.back().second) {
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
 				status = 8 | 2;
 			}
@@ -117,7 +117,7 @@ void PivotReversalStrategy::operator()()
 			this->preStatus = 1;
 			{
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
-				this->status = 8;
+				//this->status = 8;
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			double lV = lowPivotQue.back().second;
@@ -125,7 +125,7 @@ void PivotReversalStrategy::operator()()
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				this->preStatus = 0;
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
-				if (tickToKlineObject.lastPrice < swl && v > lV) {
+				if (tickToKlineObject.lastPrice < swl && -v > lV) {
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 2;
 				}
