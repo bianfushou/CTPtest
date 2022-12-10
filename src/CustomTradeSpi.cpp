@@ -186,10 +186,13 @@ void CustomTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommis
 		tradeLog->stringLog << "平今手续费率： " << pInstrumentCommissionRate->CloseTodayRatioByMoney << std::endl;
 		tradeLog->stringLog << "平今手续费： " << pInstrumentCommissionRate->CloseTodayRatioByVolume << std::endl;
 		tradeLog->logInfo();
-
-		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInstrumentCommissionRate->InstrumentID)].get());
-		if (strategy) {
-			strategy->setInstrumentCommissionRate(*pInstrumentCommissionRate);
+		std::string tInstrumentID(g_pTradeInstrumentID);
+		std::string mInstrumentID(pInstrumentCommissionRate->InstrumentID);
+		if (tInstrumentID.find(mInstrumentID) == 0) {
+			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[tInstrumentID].get());
+			if (strategy) {
+				strategy->setInstrumentCommissionRate(*pInstrumentCommissionRate);
+			}
 		}
 		if (bIsLast)
 		{
@@ -420,9 +423,9 @@ void CustomTradeSpi::reqUserLogin()
 {
 	CThostFtdcReqUserLoginField loginReq;
 	memset(&loginReq, 0, sizeof(loginReq));
-	strcpy(loginReq.BrokerID, gBrokerID);
-	strcpy(loginReq.UserID, gInvesterID);
-	strcpy(loginReq.Password, gInvesterPassword);
+	strcpy_s(loginReq.BrokerID, gBrokerID);
+	strcpy_s(loginReq.UserID, gInvesterID);
+	strcpy_s(loginReq.Password, gInvesterPassword);
 	static int requestID = 0; // 请求编号
 	int rt = g_pTradeUserApi->ReqUserLogin(&loginReq, requestID);
 	if (!rt) {

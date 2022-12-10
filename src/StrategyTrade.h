@@ -85,7 +85,7 @@ public:
 			<< "Ó¯Àû½ð¶î"
 			<< std::endl;
 		winFile.open(instrumentID + "_winRate.csv");
-		CommissionFile << "win"
+		winFile << "win"
 			<< ","<<"Ó¯¿÷±È"<<std::endl;
 	}
 	virtual void operator()() override;
@@ -187,7 +187,7 @@ public:
 	void addCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume += v;
-		double ps = v * p*InstrumentCommissionRate.OpenRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.OpenRatioByVolume;
+		double ps = v * (p*InstrumentCommissionRate.OpenRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.OpenRatioByVolume);
 		double cost = -(v * p + ps);
 		CommissionFile << instrumentID << ","
 			<< v << ","
@@ -206,7 +206,7 @@ public:
 	void subCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume -= v;
-		double ps = v * p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume;
+		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
 		double cost = v * p - ps;
 		CommissionFile << instrumentID << ","
 			<< v << ","
@@ -228,17 +228,17 @@ public:
 			if (sum > 0) {
 				profit += sum;
 				if(loss != 0)
-					CommissionFile<<1<<","<< profit / loss <<std::endl;
+					winFile <<1<<","<< profit / loss <<std::endl;
 				else {
-					CommissionFile << 1 << "," << "N/A"<< std::endl;
+					winFile << 1 << "," << "N/A"<< std::endl;
 				}
 			}
 			else {
 				loss += (-sum);
 				if (loss != 0)
-					CommissionFile << 0 << "," << profit / loss << std::endl;
+					winFile << 0 << "," << profit / loss << std::endl;
 				else {
-					CommissionFile << 0 << "," << "N/A" << std::endl;
+					winFile << 0 << "," << "N/A" << std::endl;
 				}
 			}
 			costArray.clear();

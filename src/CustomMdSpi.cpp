@@ -24,9 +24,9 @@ void CustomMdSpi::OnFrontConnected()
 	// ¿ªÊ¼µÇÂ¼
 	CThostFtdcReqUserLoginField loginReq;
 	memset(&loginReq, 0, sizeof(loginReq));
-	strcpy(loginReq.BrokerID, gBrokerID);
-	strcpy(loginReq.UserID, gInvesterID);
-	strcpy(loginReq.Password, gInvesterPassword);
+	strcpy_s(loginReq.BrokerID, gBrokerID);
+	strcpy_s(loginReq.UserID, gInvesterID);
+	strcpy_s(loginReq.Password, gInvesterPassword);
 	static int requestID = 0; // ÇëÇó±àºÅ
 	int rt = g_pMdUserApi->ReqUserLogin(&loginReq, requestID);
 	if (!rt)

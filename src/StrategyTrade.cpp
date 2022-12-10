@@ -144,7 +144,7 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 		std::lock_guard<std::mutex> lk(strategyMutex);
 
 		TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
-		if (status & 1 != 0) {
+		if ((status & 1) != 0) {
 			int YdPosition = investor.Position - investor.TodayPosition;
 			if (investor.PosiDirection == THOST_FTDC_PD_Long) {
 				this->longInvestor = investor;
@@ -171,7 +171,7 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 
 			}
 		}
-		if (status & 2 != 0) {
+		if ((status & 2) != 0) {
 			if (investor.PosiDirection == THOST_FTDC_PD_Long) {
 				this->longInvestor = investor;
 				if (instrumentField.MaxMarketOrderVolume < investor.TodayPosition) {
