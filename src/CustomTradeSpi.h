@@ -43,6 +43,10 @@ public:
 	///请求查询合约响应
 	void OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
 
+	//请求查询合约手续费率响应
+	virtual void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate, 
+		CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
+
 	///请求查询资金账户响应
 	void OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
 
@@ -89,6 +93,7 @@ private:
 	void reqUserLogout(); // 登出请求
 	void reqSettlementInfoConfirm(); // 投资者结果确认
 	void reqQueryInstrument(); // 请求查询合约
+	void reqQryInstrumentCommissionRate();
 	void reqQueryTradingAccount(); // 请求查询资金帐户
 	void reqOrderInsert(); // 请求报单录入
 	

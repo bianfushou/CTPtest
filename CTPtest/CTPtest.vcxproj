@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\Config.cpp" />
     <ClCompile Include="..\src\CustomMdSpi.cpp" />
     <ClCompile Include="..\src\CustomTradeSpi.cpp" />
     <ClCompile Include="..\src\main.cpp" />
@@ -32,6 +33,9 @@
     <ClInclude Include="..\src\log.h" />
     <ClInclude Include="..\src\StrategyTrade.h" />
     <ClInclude Include="..\src\TickToKlineHelper.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="config.ini" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B6E4CF70-7540-45BB-9DBF-C49EAA6E32E8}</ProjectGuid>

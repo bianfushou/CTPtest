@@ -75,6 +75,18 @@ public:
 	}
 	virtual void init() override {
 		outFile.open(instrumentID + "_Strategy.txt");
+		CommissionFile.open(instrumentID + "_Commission.csv");
+		CommissionFile << "合约代码" << ","
+			<< "手数" << ","
+			<< "价格" << ","
+			<< "手续费" << ","
+			<< "开平仓标志" << ","
+			<< "开平仓方向" << ","
+			<< "盈利金额"
+			<< std::endl;
+		winFile.open(instrumentID + "_winRate.csv");
+		CommissionFile << "win"
+			<< ","<<"盈亏比"<<std::endl;
 	}
 	virtual void operator()() override;
 
@@ -172,21 +184,64 @@ public:
 
 	void clearInvestor(CThostFtdcInvestorPositionField investor, int status, bool isLast);
 
-	void addCurVolume(TThostFtdcVolumeType v) {
+	void addCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume += v;
+		double ps = v * p*InstrumentCommissionRate.OpenRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.OpenRatioByVolume;
+		double cost = -(v * p + ps);
+		CommissionFile << instrumentID << ","
+			<< v << ","
+			<< p << ","
+			<< ps << ","
+			<< THOST_FTDC_OF_CloseToday << ","
+			<< direction << ","
+			<< cost << std::endl;
 		if (status >= 8) {
 			status -= 8;
 		}
+
+		costArray.push_back(cost);
 	}
 
-	void subCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag) {
+	void subCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume -= v;
+		double ps = v * p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume;
+		double cost = v * p - ps;
+		CommissionFile << instrumentID << ","
+			<< v << ","
+			<< p << ","
+			<< ps<< ","
+			<< THOST_FTDC_OF_CloseToday << ","
+			<< direction << ","
+			<< cost <<std::endl;
+		costArray.push_back(cost);
 		if (curVolume > 0) {
-			makeClearOrder(0, direction, offsetFlag, curVolume.load());
+			makeClearOrder(0, direction, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
 		else if(curVolume == 0){
+			double sum = 0;
+			for (double cs : costArray) {
+				sum += cs;
+			}
+
+			if (sum > 0) {
+				profit += sum;
+				if(loss != 0)
+					CommissionFile<<1<<","<< profit / loss <<std::endl;
+				else {
+					CommissionFile << 1 << "," << "N/A"<< std::endl;
+				}
+			}
+			else {
+				loss += (-sum);
+				if (loss != 0)
+					CommissionFile << 0 << "," << profit / loss << std::endl;
+				else {
+					CommissionFile << 0 << "," << "N/A" << std::endl;
+				}
+			}
+			costArray.clear();
 			status = 0;
 		}
 		else {
@@ -203,6 +258,10 @@ public:
 			instrumentField = field;
 		}
 	}
+
+	void setInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField commissionRate) {
+		InstrumentCommissionRate = commissionRate;
+	}
 	void clearStatus(int v) {
 		if (MvStatus == 1) {
 			initVolume -= v;
@@ -212,6 +271,8 @@ public:
 	
 private:
 	std::ofstream outFile;
+	std::ofstream CommissionFile;
+	std::ofstream winFile;
 	std::mutex strategyMutex;
 	std::list<double> highPivotQue;
 	std::list<double> lowPivotQue;
@@ -231,7 +292,11 @@ private:
 	int MvStatus = 0;
 	std::list<std::function<void()>> taskQue;
 	std::vector<std::thread> tasks;
+	std::vector<double> costArray;
+	double profit = 0;
+	double loss = 0;
 	std::atomic<int> curVolume = 0;
 	CThostFtdcInstrumentField instrumentField;
+	CThostFtdcInstrumentCommissionRateField InstrumentCommissionRate;
 	double pivot(Strategy::Type type);
 };

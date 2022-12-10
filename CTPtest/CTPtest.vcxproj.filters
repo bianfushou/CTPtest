@@ -30,6 +30,9 @@
     <ClCompile Include="..\src\StrategyTrade.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Config.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\CustomMdSpi.h">
@@ -50,5 +53,10 @@
     <ClInclude Include="..\src\Config.h">
       <Filter>头文件</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="config.ini">
+      <Filter>头文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

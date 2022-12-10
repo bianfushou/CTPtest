@@ -10,7 +10,9 @@
 #endif
 #include "TickToKlineHelper.h"
 
-const int kDataLineNum = 1 * 8; // 1分钟k线所需行数(末尾不足一分钟的舍去了)
+extern int gBarTimes;
+
+const int kDataLineNum = 2 * gBarTimes; // 1分钟k线所需行数(末尾不足一分钟的舍去了)
 
 void TickToKlineHelper::KLineFromLocalData(const std::string &sFilePath, const std::string &dFilePath)
 {
