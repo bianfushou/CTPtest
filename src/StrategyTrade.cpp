@@ -284,11 +284,17 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 	}
 	if (!isMin) {
 		highPivotQue.push_back(pivotVal);
-		outFile << "high:" << pivotVal<< std::endl;
+		outFile << "H:" << pivotVal<< std::endl;
+		if (highPivotQue.size() > 20) {
+			highPivotQue.pop_front();
+		}
 	}
 	else {
 		lowPivotQue.push_back(pivotVal);
-		outFile << "low:" << pivotVal << std::endl;
+		outFile << "L:" << pivotVal << std::endl;
+		if (lowPivotQue.size() > 20) {
+			lowPivotQue.pop_front();
+		}
 	}
 	
 	return pivotVal;

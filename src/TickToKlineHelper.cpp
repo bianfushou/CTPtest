@@ -91,7 +91,7 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 {
 	m_priceVec.push_back(pDepthMarketData->LastPrice);
 	m_volumeVec.push_back(pDepthMarketData->Volume);
-	
+	lastPrice = pDepthMarketData->LastPrice;
 	if (!isInit && isRecord) {
 		outFile.open("trade_" + instrument +".csv", std::ios::out);
 		outFile << "¿ªÅÌ¼Û" << ','
@@ -123,5 +123,4 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 		m_priceVec.clear();
 		m_volumeVec.clear();
 	}
-	lastPrice = pDepthMarketData->LastPrice;
 }
