@@ -1,0 +1,10 @@
+﻿  Config.cpp
+  testMain.cpp
+  TestStrategy.cpp
+d:\work\ctptest\src\test\teststrategy.cpp(208): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+d:\work\ctptest\src\test\teststrategy.cpp(222): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+  TickToKlineHelper.cpp
+  正在生成代码
+  All 640 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  已完成代码的生成
+  TradeTest.vcxproj -> D:\work\CTPtest\x64\Release\TradeTest.exe
