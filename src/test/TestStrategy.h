@@ -98,6 +98,12 @@ public:
 		orderInsertReq->LimitPrice = lastPrice;
 		orderInsertReq->VolumeTotalOriginal = volume;
 		orderInsertReq->StopPrice = 0;
+		if (offsetFlag == THOST_FTDC_OF_Open) {
+			addCurVolume(volume, direction, lastPrice);
+		}
+		else {
+			subCurVolume(volume, direction, lastPrice);
+		}
 	}
 
 	void makeClearOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
@@ -173,7 +179,7 @@ public:
 			<< v << ","
 			<< p << ","
 			<< ps << ","
-			<< THOST_FTDC_OF_CloseToday << ","
+			<< THOST_FTDC_OF_Open << ","
 			<< direction << ","
 			<< cost << std::endl;
 		if (status >= 8) {

@@ -6,7 +6,7 @@
 #include <memory>
 #include "TestStrategy.h"
 
-extern std::unordered_map<std::string, TickToKlineHelper> g_KlineHash;
+extern std::unordered_map<std::string, TickToKlineHelper> test_KlineHash;
 
 
 void PivotReversalStrategy::operator()()
@@ -40,7 +40,7 @@ void PivotReversalStrategy::operator()()
 		}
 		swl = lowPivotQue.back();
 	}
-	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
+	TickToKlineHelper& tickToKlineObject = test_KlineHash.at(instrumentID);
 	if (tickToKlineObject.lastPrice > swh) {
 		if (status == 0) {
 			this->preStatus = 0;
@@ -58,7 +58,7 @@ void PivotReversalStrategy::operator()()
 			taskQue.emplace_back([this, swh]() {
 				this->preStatus = 0;
 				std::lock_guard<std::mutex> lk(strategyMutex);
-				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
+				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 				if (tickToKlineObject.lastPrice > swh) {
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 1;
@@ -92,7 +92,7 @@ void PivotReversalStrategy::operator()()
 			taskQue.emplace_back([this, swl]() {
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				this->preStatus = 0;
-				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
+				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 				if (tickToKlineObject.lastPrice < swl) {
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 2;
@@ -121,7 +121,7 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 		limit = limit > instrumentField.MinMarketOrderVolume ? limit : instrumentField.MinMarketOrderVolume;
 		std::lock_guard<std::mutex> lk(strategyMutex);
 
-		TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
+		TickToKlineHelper& tickToKlineObject = test_KlineHash.at(instrumentID);
 		if ((status & 1) != 0) {
 			int YdPosition = investor.Position - investor.TodayPosition;
 			if (investor.PosiDirection == THOST_FTDC_PD_Long) {
@@ -191,7 +191,7 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 double PivotReversalStrategy::pivot(Strategy::Type type) {
 	int range = left + right;
 	std::vector<double> pivotArray;
-	TickToKlineHelper& tickToKlineObject = g_KlineHash.at(instrumentID);
+	TickToKlineHelper& tickToKlineObject = test_KlineHash.at(instrumentID);
 	if (tickToKlineObject.m_KLineDataArray.size() < range) {
 		return 0.0;
 	}
@@ -263,10 +263,16 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 	if (!isMin) {
 		highPivotQue.push_back(pivotVal);
 		outFile << "high:" << pivotVal << std::endl;
+		if (highPivotQue.size() > 100) {
+			highPivotQue.pop_front();
+		}
 	}
 	else {
 		lowPivotQue.push_back(pivotVal);
 		outFile << "low:" << pivotVal << std::endl;
+		if (lowPivotQue.size() > 100) {
+			lowPivotQue.pop_front();
+		}
 	}
 
 	return pivotVal;

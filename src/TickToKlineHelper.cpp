@@ -91,7 +91,7 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 {
 	m_priceVec.push_back(pDepthMarketData->LastPrice);
 	m_volumeVec.push_back(pDepthMarketData->Volume);
-	
+	lastPrice = pDepthMarketData->LastPrice;
 	if (!isInit && isRecord) {
 		outFile.open("trade_" + instrument +".csv", std::ios::out);
 		outFile << "开盘价" << ','
@@ -112,6 +112,10 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 		k_line_data.volume = m_volumeVec.back() - m_volumeVec.front();
 		m_KLineDataArray.push_back(k_line_data); // 此处可以存到内存
 
+		if (m_KLineDataArray.size() > 2000) {
+			m_KLineDataArray.pop_front();
+		}
+
 		if (isRecord) {
 			outFile << k_line_data.open_price << ','
 				<< k_line_data.high_price << ','
@@ -123,5 +127,4 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 		m_priceVec.clear();
 		m_volumeVec.clear();
 	}
-	lastPrice = pDepthMarketData->LastPrice;
 }
