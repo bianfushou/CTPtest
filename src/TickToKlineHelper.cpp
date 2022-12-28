@@ -10,7 +10,7 @@
 #endif
 #include "TickToKlineHelper.h"
 
-const int kDataLineNum = 1 * 8; // 1分钟k线所需行数(末尾不足一分钟的舍去了)
+extern int gBarTimes;
 
 void TickToKlineHelper::KLineFromLocalData(const std::string &sFilePath, const std::string &dFilePath)
 {
@@ -59,7 +59,7 @@ void TickToKlineHelper::KLineFromLocalData(const std::string &sFilePath, const s
 
 		// 计算k线
 
-		if (m_priceVec.size() == kDataLineNum)
+		if (m_priceVec.size() == 2 * gBarTimes)
 		{
 			KLineDataType k_line_data;
 			k_line_data.open_price = m_priceVec.front();
@@ -101,7 +101,7 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 			<< "成交量" << std::endl;
 		isInit = true;
 	}
-	if (m_priceVec.size() == kDataLineNum)
+	if (m_priceVec.size() == 2 * gBarTimes)
 	{
 		KLineDataType k_line_data;
 		k_line_data.open_price = m_priceVec.front();

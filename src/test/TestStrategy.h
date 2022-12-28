@@ -1,33 +1,18 @@
 #pragma once
 // ---- 简单策略交易的类 ---- //
 
-#include"Config.h"
+#include"../Config.h"
 #include <functional>
 #ifdef CTPTest
-#include "CTPTest_API/ThostFtdcUserApiStruct.h"
+#include "../CTPTest_API/ThostFtdcUserApiStruct.h"
 #else
-#include "CTP_API/ThostFtdcUserApiStruct.h"
+#include "../CTP_API/ThostFtdcUserApiStruct.h"
 #endif
-#include "TickToKlineHelper.h"
-#include "CustomTradeSpi.h"
+#include "../TickToKlineHelper.h"
 #include <list>
 #include <fstream>
 #include <mutex>
 #include <atomic>
-
-typedef void(*reqOrderInsertFun)(
-	TThostFtdcInstrumentIDType instrumentID,
-	TThostFtdcPriceType price,
-	TThostFtdcVolumeType volume,
-	TThostFtdcDirectionType direction);
-
-using ReqOrderInsertFunctionType = std::function<
-	void(TThostFtdcInstrumentIDType instrumentID,
-	TThostFtdcPriceType price,
-	TThostFtdcVolumeType volume,
-	TThostFtdcDirectionType direction)>;
-
-void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeSpi *customTradeSpi);
 
 class Strategy {
 public:
@@ -35,9 +20,8 @@ public:
 		open, high, low, close
 	};
 
-	void setInstrument(TThostFtdcInstrumentIDType instrumentId, CustomTradeSpi *tradeSpi) {
+	void setInstrument(TThostFtdcInstrumentIDType instrumentId) {
 		instrumentID = std::string(instrumentId);
-		customTradeSpi = tradeSpi;
 	}
 
 	void setVolume(TThostFtdcVolumeType volume) {
@@ -57,13 +41,12 @@ public:
 	}
 protected:
 	std::string instrumentID;
-	CustomTradeSpi *customTradeSpi;
 	TThostFtdcVolumeType volume = 1;
 	bool tradeStart = false;
 };
 
 
-class PivotReversalStrategy: public Strategy {
+class PivotReversalStrategy : public Strategy {
 public:
 	enum Type {
 		open, high, low, close
@@ -86,7 +69,7 @@ public:
 			<< std::endl;
 		winFile.open(instrumentID + "_winRate.csv");
 		winFile << "win"
-			<< ","<<"盈亏比"<<std::endl;
+			<< "," << "盈亏比" << std::endl;
 	}
 	virtual void operator()() override;
 
@@ -106,7 +89,7 @@ public:
 		return status;
 	}
 
-	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume ) {
+	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
 		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 		memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
 		strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
@@ -115,7 +98,6 @@ public:
 		orderInsertReq->LimitPrice = lastPrice;
 		orderInsertReq->VolumeTotalOriginal = volume;
 		orderInsertReq->StopPrice = 0;
-		customTradeSpi->reqOrder(orderInsertReq);
 	}
 
 	void makeClearOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
@@ -147,7 +129,6 @@ public:
 		orderInsertReq->IsAutoSuspend = 0;
 		///用户强评标志: 否
 		//orderInsertReq.UserForceClose = 0;
-		customTradeSpi->reqOrder(orderInsertReq, false);
 	}
 
 	void makeClearLimitOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
@@ -179,7 +160,6 @@ public:
 		orderInsertReq->IsAutoSuspend = 0;
 		///用户强评标志: 否
 		//orderInsertReq.UserForceClose = 0;
-		customTradeSpi->reqOrder(orderInsertReq, false);
 	}
 
 	void clearInvestor(CThostFtdcInvestorPositionField investor, int status, bool isLast);
@@ -211,15 +191,15 @@ public:
 		CommissionFile << instrumentID << ","
 			<< v << ","
 			<< p << ","
-			<< ps<< ","
+			<< ps << ","
 			<< THOST_FTDC_OF_CloseToday << ","
 			<< direction << ","
-			<< cost <<std::endl;
+			<< cost << std::endl;
 		costArray.push_back(cost);
 		if (curVolume > 0) {
 			makeClearOrder(0, direction, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
-		else if(curVolume == 0){
+		else if (curVolume == 0) {
 			double sum = 0;
 			for (double cs : costArray) {
 				sum += cs;
@@ -227,10 +207,10 @@ public:
 
 			if (sum > 0) {
 				profit += sum;
-				if(loss != 0)
-					winFile <<1<<","<< profit / loss <<std::endl;
+				if (loss != 0)
+					winFile << 1 << "," << profit / loss << std::endl;
 				else {
-					winFile << 1 << "," << "N/A"<< std::endl;
+					winFile << 1 << "," << "N/A" << std::endl;
 				}
 			}
 			else {
@@ -268,7 +248,7 @@ public:
 			//customTradeSpi->reqQueryInvestorPosition();
 		}
 	}
-	
+
 private:
 	std::ofstream outFile;
 	std::ofstream CommissionFile;

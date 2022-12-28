@@ -13,8 +13,6 @@ extern TThostFtdcPasswordType gInvesterPassword;              // 投资者密码
 extern CThostFtdcTraderApi *g_pTradeUserApi;                  // 交易指针
 extern char gTradeFrontAddr[];                                // 模拟交易前置地址
 extern TThostFtdcInstrumentIDType g_pTradeInstrumentID;       // 所交易的合约代码
-extern TThostFtdcDirectionType gTradeDirection;               // 买卖方向
-extern TThostFtdcPriceType gLimitPrice;                       // 交易价格
 extern TThostFtdcAuthCodeType gChAuthCode;                    //认证码
 extern TThostFtdcAppIDType	gChAppID;
 extern std::unordered_map<std::string, std::shared_ptr<Strategy>> g_StrategyMap;
@@ -166,7 +164,38 @@ void CustomTradeSpi::OnRspQryInstrument(
 			strategy->setInstrumentField(*pInstrument);
 		}
 		if (bIsLast) {
+			reqQryInstrumentCommissionRate();
 			
+		}
+	}
+}
+
+void CustomTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate,
+	CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+	if (!isErrorRspInfo(pRspInfo))
+	{
+		tradeLog->logInfo("=====查询合约手续费率结果成功=====");
+		tradeLog->stringLog << "合约代码： " << pInstrumentCommissionRate->InstrumentID << std::endl;
+		tradeLog->stringLog << "开仓手续费率： " << pInstrumentCommissionRate->OpenRatioByMoney << std::endl;
+
+		tradeLog->stringLog << "开仓手续费： " << pInstrumentCommissionRate->OpenRatioByVolume << std::endl;
+		tradeLog->stringLog << "平仓手续费率： " << pInstrumentCommissionRate->CloseRatioByMoney << std::endl;
+
+		tradeLog->stringLog << "平仓手续费： " << pInstrumentCommissionRate->CloseRatioByVolume << std::endl;
+
+		tradeLog->stringLog << "平今手续费率： " << pInstrumentCommissionRate->CloseTodayRatioByMoney << std::endl;
+		tradeLog->stringLog << "平今手续费： " << pInstrumentCommissionRate->CloseTodayRatioByVolume << std::endl;
+		tradeLog->logInfo();
+		std::string tInstrumentID(g_pTradeInstrumentID);
+		std::string mInstrumentID(pInstrumentCommissionRate->InstrumentID);
+		if (tInstrumentID.find(mInstrumentID) == 0) {
+			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[tInstrumentID].get());
+			if (strategy) {
+				strategy->setInstrumentCommissionRate(*pInstrumentCommissionRate);
+			}
+		}
+		if (bIsLast)
+		{
 			reqQueryTradingAccount();
 		}
 	}
@@ -246,7 +275,7 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 		if (bIsLast && step == 1) {
 			// 策略交易
 			//reqOrderInsert();
-			step == 2;
+			step = 2;
 			if (tradeStrategyTasks.empty()) {
 				tradeLog->logInfo("=====开始进入策略交易=====");
 				std::string tradeInstrumentID(g_pTradeInstrumentID);
@@ -345,13 +374,13 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	if (pTrade->OffsetFlag == THOST_FTDC_OF_CloseToday) {
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
 		if (strategy && strategy->getOpStart()) {
-			strategy->subCurVolume(pTrade->Volume, pTrade->Direction, pTrade->OffsetFlag);
+			strategy->subCurVolume(pTrade->Volume, pTrade->Direction, pTrade->Price);
 		}
 	}
 	else if (pTrade->OffsetFlag == THOST_FTDC_OF_Open) {
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
 		if (strategy && strategy->getOpStart()) {
-			strategy->addCurVolume(pTrade->Volume);
+			strategy->addCurVolume(pTrade->Volume, pTrade->Direction, pTrade->Price);
 			tradeLog->logInfo("******Trade success******");
 		}
 		
@@ -394,9 +423,9 @@ void CustomTradeSpi::reqUserLogin()
 {
 	CThostFtdcReqUserLoginField loginReq;
 	memset(&loginReq, 0, sizeof(loginReq));
-	strcpy(loginReq.BrokerID, gBrokerID);
-	strcpy(loginReq.UserID, gInvesterID);
-	strcpy(loginReq.Password, gInvesterPassword);
+	strcpy_s(loginReq.BrokerID, gBrokerID);
+	strcpy_s(loginReq.UserID, gInvesterID);
+	strcpy_s(loginReq.Password, gInvesterPassword);
 	static int requestID = 0; // 请求编号
 	int rt = g_pTradeUserApi->ReqUserLogin(&loginReq, requestID);
 	if (!rt) {
@@ -453,6 +482,7 @@ void CustomTradeSpi::reqQueryInstrument()
 	CThostFtdcQryInstrumentField instrumentReq;
 	memset(&instrumentReq, 0, sizeof(instrumentReq));
 	strcpy(instrumentReq.InstrumentID, g_pTradeInstrumentID);
+	//strcpy(instrumentReq.ProductID, g_pTradeInstrumentID);
 	static int requestID = 0; // 请求编号
 	int rt = g_pTradeUserApi->ReqQryInstrument(&instrumentReq, requestID);
 	if (!rt) {
@@ -469,6 +499,31 @@ void CustomTradeSpi::reqQueryInstrument()
 		tradeLog->logErr("--->>>发送合约查询请求失败");
 		tradeLog->logErr("--->>>网络连接失败");
 	}	
+}
+
+void CustomTradeSpi::reqQryInstrumentCommissionRate() {
+	CThostFtdcQryInstrumentCommissionRateField instrumentCommissionReq;
+	memset(&instrumentCommissionReq, 0, sizeof(instrumentCommissionReq));
+	strcpy(instrumentCommissionReq.InstrumentID, g_pTradeInstrumentID);
+	strcpy(instrumentCommissionReq.BrokerID, gBrokerID);
+	strcpy(instrumentCommissionReq.InvestorID, gInvesterID);
+	//strcpy(instrumentReq.ProductID, g_pTradeInstrumentID);
+	static int requestID = 0; // 请求编号
+	int rt = g_pTradeUserApi->ReqQryInstrumentCommissionRate(&instrumentCommissionReq, requestID);
+	if (!rt) {
+		tradeLog->logInfo(">>>>>>发送合约手续费率查询请求成功");
+		curReqFun = std::bind(&CustomTradeSpi::reqQryInstrumentCommissionRate, this);
+	}
+	else if (rt = -2 || rt == -3) {
+
+		tradeLog->logErr("--->>>发送合约手续费率查询请求失败");
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		reqQryInstrumentCommissionRate();
+	}
+	else {
+		tradeLog->logErr("--->>>发送合约手续费率查询请求失败");
+		tradeLog->logErr("--->>>网络连接失败");
+	}
 }
 
 void CustomTradeSpi::reqQueryTradingAccount()
