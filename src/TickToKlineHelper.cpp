@@ -112,6 +112,10 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 		k_line_data.volume = m_volumeVec.back() - m_volumeVec.front();
 		m_KLineDataArray.push_back(k_line_data); // 此处可以存到内存
 
+		if (m_KLineDataArray.size() > 2000) {
+			m_KLineDataArray.pop_front();
+		}
+
 		if (isRecord) {
 			outFile << k_line_data.open_price << ','
 				<< k_line_data.high_price << ','

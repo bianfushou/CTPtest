@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <list>
 #include "log.h"
 
 // k线数据结构
@@ -27,7 +28,7 @@ public:
 	bool isInit = false;
 	std::vector<double> m_priceVec; // 存储5分钟的价格
 	std::vector<int> m_volumeVec; // 存储5分钟的成交量
-	std::vector<KLineDataType> m_KLineDataArray;
+	std::list<KLineDataType> m_KLineDataArray;
 	std::string instrument;
 	volatile double lastPrice;
 	std::ofstream outFile;

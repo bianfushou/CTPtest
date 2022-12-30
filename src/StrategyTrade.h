@@ -193,7 +193,7 @@ public:
 			<< v << ","
 			<< p << ","
 			<< ps << ","
-			<< THOST_FTDC_OF_CloseToday << ","
+			<< THOST_FTDC_OF_Open << ","
 			<< direction << ","
 			<< cost << std::endl;
 		if (status >= 8) {
