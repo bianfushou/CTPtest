@@ -103,6 +103,8 @@ int main() {
 		dataField.LastPrice = std::stod(tokens[1]);
 		dataField.Volume = std::stoi(tokens[2]);
 		test_KlineHash[InstrumentID].KLineFromRealtimeData(&dataField);
+		test_StrategyMap[InstrumentID]->operator()();
+		test_StrategyMap[InstrumentID]->operator()();
 	}
 
 	return 0;

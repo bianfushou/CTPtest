@@ -69,17 +69,19 @@ public:
 			<< std::endl;
 		winFile.open(instrumentID + "_winRate.csv");
 		winFile << "win"
-			<< "," << "Ó¯¿÷±È" << std::endl;
+			<< "," <<"fail"<<","<< "Ó¯¿÷±È" << std::endl;
 	}
+
+	~PivotReversalStrategy() {
+	}
+
 	virtual void operator()() override;
 
 	void resetStatus() {
-		std::lock_guard<std::mutex> lk(strategyMutex);
 		taskQue.clear();
 		status = preStatus;
 	}
 	void statusDone() {
-		std::lock_guard<std::mutex> lk(strategyMutex);
 		if (status >= 8) {
 			status -= 8;
 		}
@@ -171,7 +173,6 @@ public:
 	void clearInvestor(CThostFtdcInvestorPositionField investor, int status, bool isLast);
 
 	void addCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
-		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume += v;
 		double ps = v * (p*InstrumentCommissionRate.OpenRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.OpenRatioByVolume);
 		double cost = -(v * p + ps);
@@ -190,7 +191,6 @@ public:
 	}
 
 	void subCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
-		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume -= v;
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
 		double cost = v * p - ps;
@@ -213,18 +213,20 @@ public:
 
 			if (sum > 0) {
 				profit += sum;
+				winNum++;
 				if (loss != 0)
-					winFile << 1 << "," << profit / loss << std::endl;
+					winFile << winNum << "," << faillNum<<"," << profit / loss << std::endl;
 				else {
-					winFile << 1 << "," << "N/A" << std::endl;
+					winFile << winNum << "," << faillNum << "," << "N/A" << std::endl;
 				}
 			}
 			else {
+				faillNum++;
 				loss += (-sum);
 				if (loss != 0)
-					winFile << 0 << "," << profit / loss << std::endl;
+					winFile <<winNum << "," << faillNum << "," << profit / loss << std::endl;
 				else {
-					winFile << 0 << "," << "N/A" << std::endl;
+					winFile << winNum << "," << faillNum << "," << "N/A" << std::endl;
 				}
 			}
 			costArray.clear();
@@ -271,6 +273,9 @@ private:
 	int right;
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
+
+	int winNum = 0;
+	int faillNum = 0;
 
 	int initVolume = 0;
 	bool last = false;

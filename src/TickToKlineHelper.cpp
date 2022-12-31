@@ -111,7 +111,7 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 		// 成交量的真实的算法是当前区间最后一个成交量减去上去一个区间最后一个成交量
 		k_line_data.volume = m_volumeVec.back() - m_volumeVec.front();
 		m_KLineDataArray.push_back(k_line_data); // 此处可以存到内存
-
+		kData++;
 		if (m_KLineDataArray.size() > 2000) {
 			m_KLineDataArray.pop_front();
 		}
@@ -125,6 +125,8 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 		}
 
 		m_priceVec.clear();
+		int volume = m_volumeVec.back();
 		m_volumeVec.clear();
+		m_volumeVec.push_back(volume);
 	}
 }
