@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string>
 #include <unordered_map>
+#include <fstream>
+#include <windows.h>
 #include "../CTP_API/ThostFtdcUserApiStruct.h"
 #include "../TickToKlineHelper.h"
 #include "TestStrategy.h"
@@ -51,9 +53,57 @@ void initConfig() {
 	test_KlineHash[instrumentID].instrument = instrumentID;
 }
 
+std::string GetWorkingPath()
+{
+	char szFilePath[200 + 1] = { 0 };
+	::GetModuleFileNameA(NULL, szFilePath, 200);
+
+	std::string exePath(szFilePath);
+	std::size_t pos = exePath.rfind('\\');
+	if (pos != std::string::npos)
+	{
+		return exePath.substr(0, pos + 1);
+	}
+	return "";
+}
+
+void split(const std::string& s, const char& delim , std::vector<std::string>& tokens) {
+	tokens.clear();
+	size_t lastPos = s.find_first_not_of(delim, 0);
+	size_t pos = s.find(delim, lastPos);
+	while (lastPos != std::string::npos) {
+		tokens.emplace_back(s.substr(lastPos, pos - lastPos));
+		lastPos = s.find_first_not_of(delim, pos);
+		pos = s.find(delim, lastPos);
+	}
+}
+
 int main() {
+	GetWorkingPath();
 	initConfig();
 	initStrategy();
 	
+	std::ifstream tickStream(testFileName);
+	std::string title;
+	std::getline(tickStream, title);
+	std::string data;
+	std::string InstrumentID(test_pTradeInstrumentID);
+	CThostFtdcDepthMarketDataField dataField;
+	std::vector<std::string> tokens;
+	int i = 0;
+	while (!tickStream.eof())
+	{
+		data.clear();
+		std::getline(tickStream, data);
+		i++;
+		if (data.empty()) {
+			break;
+		}
+		split(data, ',', tokens);
+		dataField.LastPrice = std::stod(tokens[1]);
+		dataField.Volume = std::stoi(tokens[2]);
+		test_KlineHash[InstrumentID].KLineFromRealtimeData(&dataField);
+	}
+
 	return 0;
 }
