@@ -1,11 +1,10 @@
-﻿  TickToKlineHelper.cpp
-  TestStrategy.cpp
+﻿  TestStrategy.cpp
 d:\work\ctptest\src\test\teststrategy.cpp(210): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
 d:\work\ctptest\src\test\teststrategy.cpp(224): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
   testMain.cpp
   正在生成代码
-  295 of 1480 functions (19.9%) were compiled, the rest were copied from previous compilation.
-    141 functions were new in current compilation
-    131 functions had inline decision re-evaluated but remain unchanged
+  135 of 1595 functions ( 8.5%) were compiled, the rest were copied from previous compilation.
+    115 functions were new in current compilation
+    78 functions had inline decision re-evaluated but remain unchanged
   已完成代码的生成
   TradeTest.vcxproj -> D:\work\CTPtest\x64\Release\TradeTest.exe

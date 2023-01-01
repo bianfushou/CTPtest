@@ -56,6 +56,10 @@ public:
 		this->left = left;
 		this->right = right;
 	}
+
+	void setRatioByVolume(double ratioByVolume) {
+		InstrumentCommissionRate.CloseTodayRatioByVolume = ratioByVolume;
+	}
 	virtual void init() override {
 		outFile.open(instrumentID + "_Strategy.txt");
 		CommissionFile.open(instrumentID + "_Commission.csv");
@@ -69,13 +73,15 @@ public:
 			<< std::endl;
 		winFile.open(instrumentID + "_winRate.csv");
 		winFile << "win"
-			<< "," <<"fail"<<","<< "Ó¯¿÷±È" << std::endl;
+			<< "," <<"fail"<<","<< "Ó¯¿÷±È"<<","<< "Ó¯Àû½ð¶î"<<","<< "¿÷Ëð½ð¶î"<< std::endl;
 	}
 
 	~PivotReversalStrategy() {
 	}
 
 	virtual void operator()() override;
+
+	void improve();
 
 	void resetStatus() {
 		taskQue.clear();
@@ -202,10 +208,13 @@ public:
 			<< direction << ","
 			<< cost << std::endl;
 		costArray.push_back(cost);
-		if (curVolume > 0) {
+		bool clear = false;
+		if (curVolume > 0 && status - 8 < 3 && status - 8 >= 0) {
 			makeClearOrder(0, direction, THOST_FTDC_OF_CloseToday, curVolume.load());
+			clear = true;
 		}
-		else if (curVolume == 0) {
+
+		if (curVolume == 0) {
 			double sum = 0;
 			for (double cs : costArray) {
 				sum += cs;
@@ -215,24 +224,27 @@ public:
 				profit += sum;
 				winNum++;
 				if (loss != 0)
-					winFile << winNum << "," << faillNum<<"," << profit / loss << std::endl;
+					winFile << winNum << "," << faillNum<<"," << profit / loss <<","<< profit << ","<<loss<< std::endl;
 				else {
-					winFile << winNum << "," << faillNum << "," << "N/A" << std::endl;
+					winFile << winNum << "," << faillNum << "," << "N/A" << "," << profit << "," << loss << std::endl;
 				}
 			}
 			else {
 				faillNum++;
 				loss += (-sum);
 				if (loss != 0)
-					winFile <<winNum << "," << faillNum << "," << profit / loss << std::endl;
+					winFile <<winNum << "," << faillNum << "," << profit / loss << "," << profit << "," << loss << std::endl;
 				else {
-					winFile << winNum << "," << faillNum << "," << "N/A" << std::endl;
+					winFile << winNum << "," << faillNum << "," << "N/A" << "," << profit << "," << loss << std::endl;
 				}
 			}
 			costArray.clear();
 			status = 0;
 		}
-		else {
+		else if (status - 8 > 3) {
+			status = status - 8;
+		}
+		else if (!clear) {
 			throw "error";
 		}
 	}
@@ -257,6 +269,18 @@ public:
 		}
 	}
 
+	double curCost(TThostFtdcVolumeType v, double p) {
+		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
+		return v * p - ps;
+	}
+
+	void winRate(double pVal, double bVal, double wbVal, double fbVal) {
+		this->pVal = pVal;
+		this->bVal = bVal;
+		this->wbVal = wbVal;
+		this->fbVal = fbVal;
+	}
+
 private:
 	std::ofstream outFile;
 	std::ofstream CommissionFile;
@@ -273,6 +297,11 @@ private:
 	int right;
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
+
+	double pVal = 0;
+	double bVal = 0;
+	double wbVal = 0;
+	double fbVal = 0;
 
 	int winNum = 0;
 	int faillNum = 0;

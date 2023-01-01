@@ -49,8 +49,21 @@ void initStrategy(CustomTradeSpi *pTradeSpi) {
 	getConfig("Strategy","LeftBars", left);
 	getConfig("Strategy", "RightBars", right);
 	getConfig("Strategy", "Volume", volume);
+	/*P = 0.5149
+		#盈亏比
+		B = 1.24268
+		#平均盈利金额
+		WB = 0.3235
+		#平均亏损金额
+		FB = 0.2603*/
+	std::string P, B, WB, FB;
+	getConfig("Strategy", "P", P);
+	getConfig("Strategy", "B", B);
+	getConfig("Strategy", "WB", WB);
+	getConfig("Strategy", "FB", FB);
 	auto pivotReversalStrategyPtr = std::make_shared<PivotReversalStrategy>();
 	pivotReversalStrategyPtr->setLRBars(std::stoi(left), std::stoi(right));
+	pivotReversalStrategyPtr->winRate(std::stod(P), std::stod(B), std::stod(WB), std::stod(FB));
 	g_StrategyMap.emplace(g_pTradeInstrumentID, pivotReversalStrategyPtr);
 	g_StrategyMap[g_pTradeInstrumentID]->setInstrument(g_pTradeInstrumentID, pTradeSpi);
 	g_StrategyMap[g_pTradeInstrumentID]->setVolume(std::stoi(volume));
