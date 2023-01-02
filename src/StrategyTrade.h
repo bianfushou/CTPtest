@@ -188,7 +188,7 @@ public:
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume += v;
 		double ps = v * (p*InstrumentCommissionRate.OpenRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.OpenRatioByVolume);
-		double cost = -(v * p + ps);
+		double cost = -(v * instrumentField.VolumeMultiple * p + ps);
 		CommissionFile << instrumentID << ","
 			<< v << ","
 			<< p << ","
@@ -207,7 +207,7 @@ public:
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		curVolume -= v;
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
-		double cost = v * p - ps;
+		double cost = v * instrumentField.VolumeMultiple * p - ps;
 		CommissionFile << instrumentID << ","
 			<< v << ","
 			<< p << ","

@@ -74,6 +74,7 @@ public:
 		winFile.open(instrumentID + "_winRate.csv");
 		winFile << "win"
 			<< "," <<"fail"<<","<< "Ó¯¿÷±È"<<","<< "Ó¯Àû½ð¶î"<<","<< "¿÷Ëð½ð¶î"<< std::endl;
+		instrumentField.VolumeMultiple = 1000;
 	}
 
 	~PivotReversalStrategy() {
@@ -181,7 +182,7 @@ public:
 	void addCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
 		curVolume += v;
 		double ps = v * (p*InstrumentCommissionRate.OpenRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.OpenRatioByVolume);
-		double cost = -(v * p + ps);
+		double cost = -(v * p * instrumentField.VolumeMultiple + ps);
 		CommissionFile << instrumentID << ","
 			<< v << ","
 			<< p << ","
@@ -199,7 +200,7 @@ public:
 	void subCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
 		curVolume -= v;
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
-		double cost = v * p - ps;
+		double cost = v * p*instrumentField.VolumeMultiple - ps;
 		CommissionFile << instrumentID << ","
 			<< v << ","
 			<< p << ","
