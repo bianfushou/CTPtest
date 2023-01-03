@@ -92,29 +92,6 @@ void PivotReversalStrategy::operator()()
 			});
 			
 		}
-		else if (status == 1) {
-			double cost = curCost(curVolume, tickToKlineObject.lastPrice);
-			double sum = 0;
-			for (double cs : costArray) {
-				sum += cs;
-			}
-			sum = sum + cost;
-			if (sum <= -(fbVal* curVolume)) {
-				this->preStatus = 1;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
-				this->status = 8;
-			}
-			else if (sum >= wbVal * curVolume) {
-				this->preStatus = 1;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load()/2);
-				this->status = 5 | 8;
-			}
-			else if (curVolume < volume) {
-				this->preStatus = 1;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
-				this->status = 8 | 1;
-			}
-		}
 		else if (status == 6) {
 			preStatus = 6;
 			{
@@ -135,6 +112,29 @@ void PivotReversalStrategy::operator()()
 				}
 
 			});
+		}
+	}
+    if (status == 1) {
+		double cost = curCost(curVolume, tickToKlineObject.lastPrice);
+		double sum = 0;
+		for (double cs : costArray) {
+			sum += cs;
+		}
+		sum = sum + cost;
+		if (sum <= -(fbVal* curVolume)) {
+			this->preStatus = 1;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
+			this->status = 8;
+		}
+		else if (sum >= wbVal * curVolume) {
+			this->preStatus = 1;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load() / 2);
+			this->status = 5 | 8;
+		}
+		else if (curVolume < volume && tickToKlineObject.lastPrice > swh) {
+			this->preStatus = 1;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
+			this->status = 8 | 1;
 		}
 	}
 	if (tickToKlineObject.lastPrice < swl) {
@@ -164,29 +164,6 @@ void PivotReversalStrategy::operator()()
 			});
 
 		}
-		else if (status == 2) {
-			double cost = curCost(curVolume, tickToKlineObject.lastPrice);
-			double sum = 0;
-			for (double cs : costArray) {
-				sum += cs;
-			}
-			sum = sum + cost;
-			if (sum <= -(fbVal* curVolume)) {
-				this->preStatus = 2;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
-				this->status = 8;
-			}
-			else if (sum >= wbVal * curVolume) {
-				this->preStatus = 2;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load() / 2);
-				this->status = 6 | 8;
-			}
-			else if (curVolume < volume) {
-				this->preStatus = 2;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume - curVolume);
-				this->status = 8 | 2;
-			}
-		}
 		else if (status == 5) {
 			this->preStatus = 5;
 			{
@@ -206,6 +183,29 @@ void PivotReversalStrategy::operator()()
 					this->status = 0;
 				}
 			});
+		}
+	}
+	if (status == 2) {
+		double cost = curCost(curVolume, tickToKlineObject.lastPrice);
+		double sum = 0;
+		for (double cs : costArray) {
+			sum += cs;
+		}
+		sum = sum + cost;
+		if (sum <= -(fbVal* curVolume)) {
+			this->preStatus = 2;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+			this->status = 8;
+		}
+		else if (sum >= wbVal * curVolume) {
+			this->preStatus = 2;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load() / 2);
+			this->status = 6 | 8;
+		}
+		else if (curVolume < volume && tickToKlineObject.lastPrice < swl) {
+			this->preStatus = 2;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume - curVolume);
+			this->status = 8 | 2;
 		}
 	}
 }

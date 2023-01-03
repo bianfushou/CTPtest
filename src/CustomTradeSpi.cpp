@@ -283,7 +283,7 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
 					std::this_thread::sleep_for(std::chrono::milliseconds(15000));
 					while (loginFlag && !taskStop) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+						std::this_thread::sleep_for(std::chrono::milliseconds(80));
 						g_StrategyMap[tradeInstrumentID]->operator()();
 					}
 				}
