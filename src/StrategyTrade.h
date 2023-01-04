@@ -106,6 +106,17 @@ public:
 		return status;
 	}
 
+	virtual void start() {
+		Strategy::start();
+		taskQue.clear();
+		preStatus = 0;
+		status = 16;
+	}
+
+	void stop() {
+		status = 16;
+	}
+
 	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume ) {
 		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
 		memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
@@ -182,7 +193,7 @@ public:
 		customTradeSpi->reqOrder(orderInsertReq, false);
 	}
 
-	void clearInvestor(CThostFtdcInvestorPositionField investor, int status, bool isLast);
+	void clearInvestor(CThostFtdcInvestorPositionField investor, bool isLast);
 
 	void addCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
@@ -269,16 +280,10 @@ public:
 	void setInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField commissionRate) {
 		InstrumentCommissionRate = commissionRate;
 	}
-	void clearStatus(int v) {
-		if (MvStatus == 1) {
-			initVolume -= v;
-			//customTradeSpi->reqQueryInvestorPosition();
-		}
-	}
 	
 	double curCost(TThostFtdcVolumeType v, double p) {
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
-		return v * p - ps;
+		return v * p * instrumentField.VolumeMultiple - ps;
 	}
 
 	void winRate(double pVal, double bVal, double wbVal, double fbVal) {
@@ -305,13 +310,13 @@ private:
 	CThostFtdcInvestorPositionField longInvestor;
 	CThostFtdcInvestorPositionField shortInvestor;
 	int preStatus = 0;
-	int status = 0; //0无单，1买多单， 2买空单
+	std::atomic<int> status = 0; //0无单，1买多单， 2买空单
 	int left;
 	int right;
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
 
-	int initVolume = 0;
+	std::atomic<int> initVolume = 0;
 	bool last = false;
 	bool opStart = false;
 	int MvStatus = 0;

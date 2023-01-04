@@ -36,6 +36,10 @@ void CustomTradeSpi::OnFrontConnected()
 	}
 	bool open = tradeLog->logIsOpen();
 	tradeLog->logInfo( "=====建立网络连接成功=====");
+	PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
+	if (strategy) {
+		strategy->start();
+	}
 	reqAuthenticate();
 }
 
@@ -94,6 +98,10 @@ void CustomTradeSpi::OnFrontDisconnected(int nReason)
 	tradeLog->logErr( "=====网络连接断开=====" );
 	tradeLog->stringLog << "错误码： " << nReason;
 	tradeLog->logErr();
+	PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
+	if (strategy) {
+		strategy->stop();
+	}
 }
 
 void CustomTradeSpi::OnHeartBeatWarning(int nTimeLapse)
@@ -242,9 +250,9 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			tradeLog->stringLog << "占用保证金：" << pInvestorPosition->UseMargin << std::endl;
 			tradeLog->logInfo();
 			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInvestorPosition->InstrumentID)].get());
-			if (strategy && strategy->getStatus() == 0 && !strategy->getOpStart()) {
-				strategy->clearInvestor(*pInvestorPosition, status, bIsLast);
-				strategy->start();
+			if (strategy) {
+				//strategy->clearInvestor(*pInvestorPosition, bIsLast);
+				strategy->resetStatus();
 			}
 			if (bIsLast) {
 				if (status == 0 && step == 0) {

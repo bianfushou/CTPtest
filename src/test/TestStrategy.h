@@ -32,7 +32,7 @@ public:
 
 	virtual void operator()() = 0;
 
-	void start() {
+	virtual void start() {
 		tradeStart = true;
 	}
 
@@ -94,6 +94,16 @@ public:
 		}
 	}
 
+	virtual void start() {
+		Strategy::start();
+		taskQue.clear();
+		preStatus = 0;
+		status = 0;
+	}
+	
+	void stop() {
+		status = 16;
+	}
 	int getStatus() {
 		return status;
 	}
