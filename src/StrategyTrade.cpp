@@ -102,7 +102,7 @@ void PivotReversalStrategy::operator()()
 				if (tickToKlineObject.lastPriceArray.size() >= 6) {
 					Sprice = tickToKlineObject.lastPriceArray.front();
 				}
-				if (tickToKlineObject.lastPrice > swh + 2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice > swh && tickToKlineObject.lastPrice - Sprice >= 2 * this->instrumentField.PriceTick)) {
+				if (tickToKlineObject.lastPrice > swh + 2.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice > swh && tickToKlineObject.lastPrice - Sprice >= 2 * this->instrumentField.PriceTick)) {
 #else
 				if (tickToKlineObject.lastPrice > swh) {
 #endif
@@ -198,7 +198,7 @@ void PivotReversalStrategy::operator()()
 				if (tickToKlineObject.lastPriceArray.size() >= 6) {
 					Sprice = tickToKlineObject.lastPriceArray.front();
 				}
-				if (tickToKlineObject.lastPrice < swl - 2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice < swl && tickToKlineObject.lastPrice - Sprice <= -2 * this->instrumentField.PriceTick)) {
+				if (tickToKlineObject.lastPrice < swl - 2.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice < swl && tickToKlineObject.lastPrice - Sprice <= -2 * this->instrumentField.PriceTick)) {
 #else
 				if (tickToKlineObject.lastPrice < swl) {
 #endif
