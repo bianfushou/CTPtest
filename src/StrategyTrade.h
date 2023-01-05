@@ -3,6 +3,7 @@
 
 #include"Config.h"
 #include <functional>
+#include<stdio.h>
 #ifdef CTPTest
 #include "CTPTest_API/ThostFtdcUserApiStruct.h"
 #else
@@ -28,6 +29,8 @@ using ReqOrderInsertFunctionType = std::function<
 	TThostFtdcDirectionType direction)>;
 
 void StrategyCheckAndTrade(TThostFtdcInstrumentIDType instrumentID, CustomTradeSpi *customTradeSpi);
+
+extern int gBarTimes;
 
 class Strategy {
 public:
@@ -73,6 +76,12 @@ public:
 		this->left = left;
 		this->right = right;
 	}
+
+	~PivotReversalStrategy() {
+		if (pivotfile) {
+			fclose(pivotfile);
+		}
+	}
 	virtual void init() override {
 		outFile.open(instrumentID + "_Strategy.txt");
 		CommissionFile.open(instrumentID + "_Commission.csv");
@@ -87,6 +96,26 @@ public:
 		winFile.open(instrumentID + "_winRate.csv");
 		winFile << "win"
 			<< "," << "fail" << "," << "Ó¯¿÷±È" << "," << "Ó¯Àû½ð¶î" << "," << "¿÷Ëð½ð¶î" << std::endl;
+		std::string PivotMin = instrumentID + "PivotMin.con";
+		pivotfile = fopen(PivotMin.c_str(), "rb+");
+		if (pivotfile) {
+			double time[3];
+			int size = fread(time, sizeof(double), 3, pivotfile);
+			if (size == 4) {
+				time_t t_c = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+				time_t t_h;
+				int ts = fread(&t_h, sizeof(time_t), 1, pivotfile);
+				if (ts == 1 && t_c - t_h  < 7200 && abs(t_c - t_h) < 7200) {
+					if (time[0] > time[1] && time[1] > 0 && fabs(gBarTimes - time[2]) < 0.5) {
+						highPivotQue.push_back(time[0]);
+						lowPivotQue.push_back(time[1]);
+					}
+				}
+			}
+		}
+		else {
+			pivotfile = fopen(PivotMin.c_str(), "wb+");
+		}
 	}
 	virtual void operator()() override;
 
@@ -304,6 +333,7 @@ private:
 	std::ofstream outFile;
 	std::ofstream CommissionFile;
 	std::ofstream winFile;
+	FILE* pivotfile = nullptr;
 	std::mutex strategyMutex;
 	std::list<double> highPivotQue;
 	std::list<double> lowPivotQue;

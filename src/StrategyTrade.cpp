@@ -391,12 +391,33 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 		if (highPivotQue.size() > 20) {
 			highPivotQue.pop_front();
 		}
+		if (lowPivotQue.size() > 0 && pivotfile) {
+			double timePivot[3];
+			fseek(pivotfile, 0, SEEK_SET);
+			timePivot[0] = pivotVal;
+			timePivot[1] = lowPivotQue.back();
+			timePivot[2] = gBarTimes;
+			fwrite(timePivot, sizeof(double), 3, pivotfile);
+			time_t t_c = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			fwrite(&t_c, sizeof(time_t), 1, pivotfile);
+		}
+		
 	}
 	else {
 		lowPivotQue.push_back(pivotVal);
 		outFile << "L:" << pivotVal << std::endl;
 		if (lowPivotQue.size() > 20) {
 			lowPivotQue.pop_front();
+		}
+		if (highPivotQue.size() > 0 && pivotfile) {
+			double timePivot[3];
+			fseek(pivotfile, 0, SEEK_SET);
+			timePivot[0] = highPivotQue.back();
+			timePivot[1] = pivotVal;
+			timePivot[2] = gBarTimes;
+			fwrite(timePivot, sizeof(double), 3, pivotfile);
+			time_t t_c = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			fwrite(&t_c, sizeof(time_t), 1, pivotfile);
 		}
 	}
 	
