@@ -31,6 +31,7 @@ public:
 	std::list<KLineDataType> m_KLineDataArray;
 	int kData = 0;
 	std::string instrument;
+	time_t cur_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	volatile double lastPrice;
 	std::ofstream outFile;
 };

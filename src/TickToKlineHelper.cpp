@@ -101,8 +101,10 @@ void TickToKlineHelper::KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pD
 			<< "³É½»Á¿" << std::endl;
 		isInit = true;
 	}
-	if (m_priceVec.size() == 2 * gBarTimes)
+	time_t t_c = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	if (m_priceVec.size() == 2 * gBarTimes || (t_c - cur_time > gBarTimes && m_priceVec.size() > gBarTimes))
 	{
+		cur_time = t_c;
 		KLineDataType k_line_data;
 		k_line_data.open_price = m_priceVec.front();
 		k_line_data.high_price = *std::max_element(m_priceVec.cbegin(), m_priceVec.cend());
