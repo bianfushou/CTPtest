@@ -204,7 +204,16 @@ void PivotReversalStrategy::operator()()
 	if (status == 1) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
 #ifdef MEStrategy
-		double pivotSplit = highPivotQue.back() - lowPivotQue.back();
+		double pivotSplit = highPivotQue.back();
+		if (lowPivotQue.size() > 0) {
+			pivotSplit -= lowPivotQue.back();
+		}
+		else{
+			pivotSplit -= PreSettlementPrice;
+			if (pivotSplit < 0) {
+				pivotSplit = 0.618 * highPivotQue.back();
+			}
+		}
 		pivotSplit = highPivotQue.back() - 0.618 * pivotSplit;
 		if (sum <= -(fbVal* curVolume) || (sum < 0 && tickToKlineObject.lastPrice < pivotSplit)) {
 #else
@@ -257,7 +266,16 @@ void PivotReversalStrategy::operator()()
 	else if (status == 2) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
 #ifdef MEStrategy
-		double pivotSplit = highPivotQue.back() - lowPivotQue.back();
+		double pivotSplit = -lowPivotQue.back();
+		if (highPivotQue.size() > 0) {
+			pivotSplit += highPivotQue.back();
+		}
+		else {
+			pivotSplit += PreSettlementPrice;
+			if (pivotSplit < 0) {
+				pivotSplit = 0.618 * lowPivotQue.back();
+			}
+		}
 		pivotSplit = lowPivotQue.back() + 0.618 * pivotSplit;
 		if (sum <= -(fbVal* curVolume) || (sum < 0 && tickToKlineObject.lastPrice > pivotSplit)) {
 #else
@@ -288,6 +306,7 @@ void PivotReversalStrategy::operator()()
 }
 
 void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField investor, bool isLast) {
+	PreSettlementPrice = investor.PreSettlementPrice;
 	if (status >= 16) {
 		tasks.emplace_back([this, investor, isLast]() {
 			std::lock_guard<std::mutex> lk(strategyMutex);

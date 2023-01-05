@@ -374,6 +374,7 @@ private:
 	double loss = 0;
 	std::atomic<int> curVolume = 0;
 	CThostFtdcInstrumentField instrumentField;
+	double PreSettlementPrice = 0;
 	CThostFtdcInstrumentCommissionRateField InstrumentCommissionRate;
 	double pivot(Strategy::Type type);
 };
