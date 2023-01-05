@@ -111,6 +111,7 @@ public:
 		taskQue.clear();
 		preStatus = 0;
 		status = 16;
+		curVolume = 0;
 	}
 
 	void stop() {
@@ -216,6 +217,9 @@ public:
 
 	void subCurVolume(TThostFtdcVolumeType v, TThostFtdcDirectionType direction, double p) {
 		std::lock_guard<std::mutex> lk(strategyMutex);
+		if (status >= 16) {
+			return;
+		}
 		curVolume -= v;
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
 		double cost = v * instrumentField.VolumeMultiple * p - ps;
@@ -291,6 +295,10 @@ public:
 		this->bVal = bVal;
 		this->wbVal = wbVal;
 		this->fbVal = fbVal;
+	}
+
+	void setCurVolume(int curVol) {
+		this->curVolume = curVol;
 	}
 private:
 	std::ofstream outFile;

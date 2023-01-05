@@ -194,13 +194,10 @@ void CustomTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommis
 		tradeLog->stringLog << "平今手续费率： " << pInstrumentCommissionRate->CloseTodayRatioByMoney << std::endl;
 		tradeLog->stringLog << "平今手续费： " << pInstrumentCommissionRate->CloseTodayRatioByVolume << std::endl;
 		tradeLog->logInfo();
-		std::string tInstrumentID(g_pTradeInstrumentID);
 		std::string mInstrumentID(pInstrumentCommissionRate->InstrumentID);
-		if (tInstrumentID.find(mInstrumentID) == 0) {
-			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[tInstrumentID].get());
-			if (strategy) {
-				strategy->setInstrumentCommissionRate(*pInstrumentCommissionRate);
-			}
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[mInstrumentID].get());
+		if (strategy) {
+			strategy->setInstrumentCommissionRate(*pInstrumentCommissionRate);
 		}
 		if (bIsLast)
 		{
@@ -251,8 +248,8 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			tradeLog->logInfo();
 			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInvestorPosition->InstrumentID)].get());
 			if (strategy) {
-				//strategy->clearInvestor(*pInvestorPosition, bIsLast);
-				strategy->resetStatus();
+				strategy->clearInvestor(*pInvestorPosition, bIsLast);
+				//strategy->resetStatus();
 			}
 			if (bIsLast) {
 				if (status == 0 && step == 0) {
@@ -286,16 +283,19 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 			step = 2;
 			if (tradeStrategyTasks.empty()) {
 				tradeLog->logInfo("=====开始进入策略交易=====");
-				std::string tradeInstrumentID(g_pTradeInstrumentID);
-				g_StrategyMap[tradeInstrumentID]->start();
-				tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
-					std::this_thread::sleep_for(std::chrono::milliseconds(15000));
-					while (loginFlag && !taskStop) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(80));
-						g_StrategyMap[tradeInstrumentID]->operator()();
+				std::string tradeInstrumentID(pInvestorPosition->InstrumentID);
+				PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[tradeInstrumentID].get());
+				if (strategy) {
+					tradeStrategyTasks.emplace_back([this, tradeInstrumentID]() {
+						std::this_thread::sleep_for(std::chrono::milliseconds(15000));
+						while (loginFlag && !taskStop) {
+							std::this_thread::sleep_for(std::chrono::milliseconds(80));
+							g_StrategyMap[tradeInstrumentID]->operator()();
+						}
 					}
+					);
 				}
-				);
+				
 			}
 		}
 	}
@@ -380,13 +380,13 @@ void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 	tradeLog->stringLog << "开平标志: "<<pTrade->OffsetFlag << std::endl;
 	tradeLog->logInfo();
 	if (pTrade->OffsetFlag == THOST_FTDC_OF_CloseToday) {
-		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
 		if (strategy && strategy->getOpStart()) {
 			strategy->subCurVolume(pTrade->Volume, pTrade->Direction, pTrade->Price);
 		}
 	}
 	else if (pTrade->OffsetFlag == THOST_FTDC_OF_Open) {
-		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
 		if (strategy && strategy->getOpStart()) {
 			strategy->addCurVolume(pTrade->Volume, pTrade->Direction, pTrade->Price);
 			tradeLog->logInfo("******Trade success******");

@@ -35,7 +35,6 @@ void PivotReversalStrategy::operator()()
 {
 	if (!opStart) {
 		opStart = true;
-		curVolume = 0;
 	}
 	if (status >= 8) {
 		return;
@@ -249,6 +248,7 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 					if (this->status == 16) {
 						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, investor.TodayPosition - volume);
 						this->status = (1 | 16);
+						this->setCurVolume(volume);
 					}
 					else if (this->status == 18) {
 						for (int p = investor.TodayPosition; p > 0; p -= limit) {
@@ -261,6 +261,7 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 					if (this->status == 16) {
 						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, investor.TodayPosition - volume);
 						this->status = (2 | 16);
+						this->setCurVolume(volume);
 					}
 					else if(this->status == 17){
 						for (int p = investor.TodayPosition; p > 0; p -= limit) {
@@ -286,19 +287,24 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 			}
 			else {
 				if (investor.PosiDirection == THOST_FTDC_PD_Long) {
-					this->status = (1 | 16);
+					if (this->status == 16) {
+						this->status = (1 | 16);
+						this->setCurVolume(volume);
+					}
 				}
 				else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
-					this->status = (2 | 16);
+					if (this->status == 16) {
+						this->status = (2 | 16);
+						this->setCurVolume(volume);
+					}
 				}
 			}
-			if (last) {
-				if (this->status >= 16) {
-					this->status -= 16;
-				}
+			if (isLast) {
+				status = status - 16;
 			}
 		});
 	}
+
 }
 
 double PivotReversalStrategy::pivot(Strategy::Type type) {
