@@ -222,8 +222,8 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 				this->longInvestor = investor;
 				if (instrumentField.MaxMarketOrderVolume < YdPosition) {
 					for (int p = YdPosition; p > 0; p -= limit) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Close, p > limit ? limit : p);
+						std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 					}
 				}
 				else if (YdPosition > 0) {
@@ -233,8 +233,8 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 			else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
 				if (instrumentField.MaxMarketOrderVolume < YdPosition) {
 					for (int p = YdPosition; p > 0; p -= limit) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Close, p > limit ? limit : p);
+						std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 					}
 				}
 				else if (YdPosition > 0) {
@@ -246,27 +246,33 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 			if (investor.TodayPosition > volume) {
 				if (investor.PosiDirection == THOST_FTDC_PD_Long) {
 					if (this->status == 16) {
-						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, investor.TodayPosition - volume);
+						for (int p = investor.TodayPosition - volume; p > 0; p -= limit) {
+							makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, p > limit ? limit : p);
+							std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+						}
 						this->status = (1 | 16);
 						this->setCurVolume(volume);
 					}
 					else if (this->status == 18) {
 						for (int p = investor.TodayPosition; p > 0; p -= limit) {
-							std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 							makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, p > limit ? limit : p);
+							std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 						}
 					}
 				}
 				else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
 					if (this->status == 16) {
-						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, investor.TodayPosition - volume);
+						for (int p = investor.TodayPosition - volume; p > 0; p -= limit) {
+							makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, p > limit ? limit : p);
+							std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+						}
 						this->status = (2 | 16);
 						this->setCurVolume(volume);
 					}
 					else if(this->status == 17){
 						for (int p = investor.TodayPosition; p > 0; p -= limit) {
-							std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 							makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, p > limit ? limit : p);
+							std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 						}
 					}
 				}
@@ -274,14 +280,14 @@ void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField invest
 			else if(investor.TodayPosition < volume){
 				if (investor.PosiDirection == THOST_FTDC_PD_Long) {
 					for (int p = investor.TodayPosition; p > 0; p -= limit) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, p > limit ? limit : p);
+						std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 					}
 				}
 				else if (investor.PosiDirection == THOST_FTDC_PD_Short) {
 					for (int p = investor.TodayPosition; p > 0; p -= limit) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 						makeClearOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, p > limit ? limit : p);
+						std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 					}
 				}
 			}
