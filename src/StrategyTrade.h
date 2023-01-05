@@ -105,7 +105,7 @@ public:
 				time_t t_c = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 				time_t t_h;
 				int ts = fread(&t_h, sizeof(time_t), 1, pivotfile);
-				if (ts == 1 && t_c - t_h  < 9000 && abs(t_c - t_h) < 9000) {
+				if (ts == 1 && t_c - t_h  < 10800 && abs(t_c - t_h) < 10800) {
 					if (time[0] > time[1] && time[1] > 0 && fabs(gBarTimes - time[2]) < 0.5) {
 						highPivotQue.push_back(time[0]);
 						lowPivotQue.push_back(time[1]);
