@@ -105,7 +105,7 @@ public:
 				time_t t_c = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 				time_t t_h;
 				int ts = fread(&t_h, sizeof(time_t), 1, pivotfile);
-				if (ts == 1 && t_c - t_h  < 7200 && abs(t_c - t_h) < 7200) {
+				if (ts == 1 && t_c - t_h  < 9000 && abs(t_c - t_h) < 9000) {
 					if (time[0] > time[1] && time[1] > 0 && fabs(gBarTimes - time[2]) < 0.5) {
 						highPivotQue.push_back(time[0]);
 						lowPivotQue.push_back(time[1]);
@@ -122,7 +122,7 @@ public:
 	void resetStatus() {
 		std::lock_guard<std::mutex> lk(strategyMutex);
 		taskQue.clear();
-		status = preStatus;
+		status.store(preStatus.load());
 	}
 	void statusDone() {
 		std::lock_guard<std::mutex> lk(strategyMutex);
@@ -347,7 +347,7 @@ private:
 
 	CThostFtdcInvestorPositionField longInvestor;
 	CThostFtdcInvestorPositionField shortInvestor;
-	int preStatus = 0;
+	std::atomic<int> preStatus = 0;
 	std::atomic<int> status = 0; //0无单，1买多单， 2买空单
 	int left;
 	int right;

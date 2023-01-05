@@ -48,6 +48,23 @@ void PivotReversalStrategy::operator()()
 	std::lock_guard<std::mutex> lk(strategyMutex);
 	double swh = pivot(Strategy::Type::high);
 	double swl = pivot(Strategy::Type::low);
+	if (highPivotQue.empty() && lowPivotQue.empty() && status > 0) {
+		TickToKlineHelper& tickToKline = g_KlineHash.at(instrumentID);
+		if (status == 2 || status == 6) {
+			preStatus.store( status.load());
+			{
+				makeOrder(tickToKline.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
+				this->status = 8;
+			}
+		}
+		else if(status == 1 || status == 5){
+			preStatus.store(status.load());
+			{
+				makeOrder(tickToKline.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+				this->status = 8;
+			}
+		}
+	}
 	if (swh <= 0.0 ) {
 		if (highPivotQue.empty()) {
 			return;
