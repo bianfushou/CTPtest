@@ -319,6 +319,15 @@ public:
 		return v * p * instrumentField.VolumeMultiple - ps;
 	}
 
+	double sumCost(TThostFtdcVolumeType v, double p) {
+		double cost = curCost(v, p);
+		double sum = 0;
+		for (double cs : costArray) {
+			sum += cs;
+		}
+		return sum + cost;
+	}
+
 	void winRate(double pVal, double bVal, double wbVal, double fbVal) {
 		this->pVal = pVal;
 		this->bVal = bVal;
