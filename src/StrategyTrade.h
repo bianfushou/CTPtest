@@ -391,8 +391,8 @@ public:
 			if (pivotSplit < 0) {
 				pivotSplit = -pivotSplit;
 			}
-			if (pivotSplit < 0.01 * instrumentField.VolumeMultiple * this->instrumentField.PriceTick) {
-				pivotSplit = 0.01 * instrumentField.VolumeMultiple * this->instrumentField.PriceTick;
+			if (pivotSplit < 10 * this->instrumentField.PriceTick) {
+				pivotSplit = 10 * this->instrumentField.PriceTick;
 			}
 		}
 		return pivotSplit;

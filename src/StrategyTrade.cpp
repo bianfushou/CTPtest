@@ -134,7 +134,19 @@ void PivotReversalStrategy::operator()()
 				this->preStatus = 0;
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
+#ifdef MEStrategy
+				bool into = false;
+				if (highPivotQue.size() > 1) {
+					auto iter = highPivotQue.rbegin();
+					iter++;
+					if (*iter - swh > 0.382 * getPivotSplit()) {
+						into = true;
+					}
+				}
+				if (tickToKlineObject.lastPrice > swh + 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice > swh && into)) {
+#else
 				if (tickToKlineObject.lastPrice > swh) {
+#endif
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 1;
 				}
@@ -166,7 +178,7 @@ void PivotReversalStrategy::operator()()
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
 #ifdef MEStrategy
 				bool into = false;
-				if (highPivotQue.size() > 1) {
+				if (lowPivotQue.size() > 1) {
 					auto iter = lowPivotQue.rbegin();
 					iter++;
 					if (*iter - swl < -0.382 * getPivotSplit()) {
@@ -198,7 +210,19 @@ void PivotReversalStrategy::operator()()
 				std::lock_guard<std::mutex> lk(strategyMutex);
 				this->preStatus = 0;
 				TickToKlineHelper& tickToKlineObject = g_KlineHash.at(this->instrumentID);
+#ifdef MEStrategy
+				bool into = false;
+				if (lowPivotQue.size() > 1) {
+					auto iter = lowPivotQue.rbegin();
+					iter++;
+					if (*iter - swl < -0.382 * getPivotSplit()) {
+						into = true;
+					}
+				}
+				if (tickToKlineObject.lastPrice < swl - 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice < swl && into)) {
+#else
 				if (tickToKlineObject.lastPrice < swl) {
+#endif
 					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
 					this->status = 8 | 2;
 				}
@@ -244,7 +268,13 @@ void PivotReversalStrategy::operator()()
 	}
 	else if (status == 5) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
+#ifdef MEStrategy
+		double pivotSplit = getPivotSplit();
+		pivotSplit = highPivotQue.back() - 0.618 * pivotSplit;
+		if (tickToKlineObject.lastPrice < pivotSplit || sum < wbVal * curVolume * 0.69) {
+#else
 		if (sum < wbVal * curVolume * 0.69) {
+#endif
 			this->preStatus = 5;
 			{
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
@@ -254,7 +284,13 @@ void PivotReversalStrategy::operator()()
 	}
 	else if (status == 6) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
+#ifdef MEStrategy
+		double pivotSplit = getPivotSplit();
+		pivotSplit = lowPivotQue.back() + 0.618 * pivotSplit;
+		if (tickToKlineObject.lastPrice > pivotSplit || sum < wbVal * curVolume * 0.69) {
+#else
 		if (sum < wbVal * curVolume * 0.69) {
+#endif
 			this->preStatus = 6;
 			{
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
