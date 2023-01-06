@@ -211,11 +211,11 @@ void PivotReversalStrategy::operator()()
 		else{
 			pivotSplit -= PreSettlementPrice;
 			if (pivotSplit < 0) {
-				pivotSplit = 0.618 * highPivotQue.back();
+				pivotSplit = -pivotSplit;
 			}
 		}
 		pivotSplit = highPivotQue.back() - 0.618 * pivotSplit;
-		if (sum <= -(fbVal* curVolume) || (sum < 0 && tickToKlineObject.lastPrice < pivotSplit)) {
+		if (sum <= -(fbVal* curVolume) || (sum < -0.382*(fbVal* curVolume) && tickToKlineObject.lastPrice < pivotSplit)) {
 #else
 		if (sum <= -(fbVal* curVolume)) {
 #endif
@@ -245,7 +245,7 @@ void PivotReversalStrategy::operator()()
 	}
 	else if (status == 5) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
-		if (sum < wbVal * curVolume / 2) {
+		if (sum < wbVal * curVolume * 0.69) {
 			this->preStatus = 5;
 			{
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
@@ -255,7 +255,7 @@ void PivotReversalStrategy::operator()()
 	}
 	else if (status == 6) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
-		if (sum < wbVal * curVolume / 2) {
+		if (sum < wbVal * curVolume * 0.69) {
 			this->preStatus = 6;
 			{
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
@@ -273,11 +273,11 @@ void PivotReversalStrategy::operator()()
 		else {
 			pivotSplit += PreSettlementPrice;
 			if (pivotSplit < 0) {
-				pivotSplit = 0.618 * lowPivotQue.back();
+				pivotSplit = -pivotSplit;
 			}
 		}
 		pivotSplit = lowPivotQue.back() + 0.618 * pivotSplit;
-		if (sum <= -(fbVal* curVolume) || (sum < 0 && tickToKlineObject.lastPrice > pivotSplit)) {
+		if (sum <= -(fbVal* curVolume) || (sum < -0.382*(fbVal* curVolume) && tickToKlineObject.lastPrice > pivotSplit)) {
 #else
 		if (sum <= -(fbVal* curVolume)) {
 #endif
