@@ -433,6 +433,7 @@ private:
 	std::vector<double> costArray;
 	double profit = 0;
 	double loss = 0;
+	int trend = 0;
 	std::atomic<int> curVolume = 0;
 	CThostFtdcInstrumentField instrumentField;
 	double PreSettlementPrice = 0;

@@ -238,7 +238,7 @@ void PivotReversalStrategy::operator()()
 #ifdef MEStrategy
 		double pivotSplit = getPivotSplit();
 		pivotSplit = highPivotQue.back() - 0.618 * pivotSplit;
-		if (sum <= -getAvgFbVal() || (sum < 0 && tickToKlineObject.lastPrice < pivotSplit)) {
+		if (sum <= -getAvgFbVal() || (sum < 0 && tickToKlineObject.lastPrice < pivotSplit && trend == -1)) {
 #else
 		if (sum <= -getAvgFbVal()) {
 #endif
@@ -252,7 +252,7 @@ void PivotReversalStrategy::operator()()
 		else if (sum >= getAvgWbVal()) {
 			this->preStatus = 1;
 #ifdef MEStrategy
-			if (tickToKlineObject.lastPrice < highPivotQue.back()) {
+			if (trend == -1) {
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load() / 2 + curVolume.load() % 2);
 			}
 #else
@@ -271,7 +271,7 @@ void PivotReversalStrategy::operator()()
 #ifdef MEStrategy
 		double pivotSplit = getPivotSplit();
 		pivotSplit = highPivotQue.back() - 0.618 * pivotSplit;
-		if (tickToKlineObject.lastPrice < pivotSplit || sum < wbVal * curVolume * 0.69) {
+		if ((tickToKlineObject.lastPrice < pivotSplit && trend == -1)|| sum < wbVal * curVolume * 0.69) {
 #else
 		if (sum < wbVal * curVolume * 0.69) {
 #endif
@@ -287,7 +287,7 @@ void PivotReversalStrategy::operator()()
 #ifdef MEStrategy
 		double pivotSplit = getPivotSplit();
 		pivotSplit = lowPivotQue.back() + 0.618 * pivotSplit;
-		if (tickToKlineObject.lastPrice > pivotSplit || sum < wbVal * curVolume * 0.69) {
+		if ((tickToKlineObject.lastPrice > pivotSplit && trend == 1) || sum < wbVal * curVolume * 0.69) {
 #else
 		if (sum < wbVal * curVolume * 0.69) {
 #endif
@@ -303,7 +303,7 @@ void PivotReversalStrategy::operator()()
 #ifdef MEStrategy
 		double pivotSplit = getPivotSplit();
 		pivotSplit = lowPivotQue.back() + 0.618 * pivotSplit;
-		if (sum <= -getAvgFbVal() || ( sum < 0 && tickToKlineObject.lastPrice > pivotSplit)) {
+		if (sum <= -getAvgFbVal() || ( sum < 0 && tickToKlineObject.lastPrice > pivotSplit && trend == 1)) {
 #else
 		if (sum <= -(fbVal* curVolume)) {
 #endif
@@ -315,7 +315,7 @@ void PivotReversalStrategy::operator()()
 		else if (sum >= getAvgWbVal()) {
 			this->preStatus = 2;
 #ifdef MEStrategy
-			if (tickToKlineObject.lastPrice > lowPivotQue.back()) {
+			if (trend == 1) {
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load() / 2 + curVolume.load() % 2);
 			}
 #else
@@ -548,6 +548,7 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 		if (highPivotQue.size() > 20) {
 			highPivotQue.pop_front();
 		}
+		trend = -1;
 		if (lowPivotQue.size() > 0 && pivotfile) {
 			double timePivot[3];
 			fseek(pivotfile, 0, SEEK_SET);
@@ -562,6 +563,7 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 	}
 	else {
 		lowPivotQue.push_back(pivotVal);
+		trend = 1;
 		outFile << "L:" << pivotVal << std::endl;
 		if (lowPivotQue.size() > 20) {
 			lowPivotQue.pop_front();
