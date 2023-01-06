@@ -270,9 +270,9 @@ public:
 			for (double cs : costArray) {
 				sum += cs;
 			}
-
 			if (sum > 0) {
 				profit += sum;
+				presumProfit = sum;
 				winNum++;
 				if (loss != 0)
 					winFile << winNum << "," << faillNum << "," << profit / loss << "," << profit << "," << loss << std::endl;
@@ -282,6 +282,7 @@ public:
 			}
 			else {
 				faillNum++;
+				presumLoss = sum;
 				loss += (-sum);
 				if (loss != 0)
 					winFile << winNum << "," << faillNum << "," << profit / loss << "," << profit << "," << loss << std::endl;
@@ -338,6 +339,64 @@ public:
 	void setCurVolume(int curVol) {
 		this->curVolume = curVol;
 	}
+
+	double getAvgWbVal() {
+#ifdef MEStrategy
+		if (presumProfit > 0) {
+			double avg = curVolume * wbVal * 0.618 + presumProfit * 0.382;
+			if (avg > curVolume * wbVal * 1.382) {
+				avg = curVolume * wbVal * 1.382;
+			}
+			return avg;
+		}
+		else {
+			return curVolume * wbVal;
+		}
+#else
+		return curVolume * wbVal;
+#endif
+	}
+
+	double getAvgFbVal() {
+#ifdef MEStrategy
+		if (presumLoss < 0) {
+			double avg = curVolume * fbVal + presumLoss * 0.382;
+			if (avg < curVolume * fbVal * 0.618) {
+				avg = curVolume * fbVal * 0.618;
+			}
+			return avg;
+		}
+		else {
+			return curVolume * fbVal;
+		}
+#else
+		return curVolume * wbVal;
+#endif
+	}
+
+	double getPivotSplit() {
+		double pivotSplit = 0;
+		if (!highPivotQue.empty()) {
+			pivotSplit = highPivotQue.back();
+		}
+		else {
+			pivotSplit = PreSettlementPrice;
+		}
+
+		if (lowPivotQue.size() > 0) {
+			pivotSplit -= lowPivotQue.back();
+		}
+		else {
+			pivotSplit -= PreSettlementPrice;
+			if (pivotSplit < 0) {
+				pivotSplit = -pivotSplit;
+			}
+			if (pivotSplit < 0.01 * instrumentField.VolumeMultiple * this->instrumentField.PriceTick) {
+				pivotSplit = 0.01 * instrumentField.VolumeMultiple * this->instrumentField.PriceTick;
+			}
+		}
+		return pivotSplit;
+	}
 private:
 	std::ofstream outFile;
 	std::ofstream CommissionFile;
@@ -362,6 +421,8 @@ private:
 	int right;
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
+	double presumProfit = 0;
+	double presumLoss = 0;
 
 	std::atomic<int> initVolume = 0;
 	bool last = false;

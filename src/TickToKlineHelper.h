@@ -26,7 +26,6 @@ public:
 public:
 	bool isRecord = false;
 	bool isInit = false;
-	std::list<double> lastPriceArray;
 	std::vector<double> m_priceVec; // 存储5分钟的价格
 	std::vector<int> m_volumeVec; // 存储5分钟的成交量
 	std::list<KLineDataType> m_KLineDataArray;
