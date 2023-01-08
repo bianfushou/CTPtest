@@ -254,11 +254,12 @@ void PivotReversalStrategy::operator()()
 #ifdef MEStrategy
 			if (trend == -1) {
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load() / 2 + curVolume.load() % 2);
+				this->status = 5 | 8;
 			}
 #else
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load() / 2);
-#endif
 			this->status = 5 | 8;
+#endif
 		}
 		else if (curVolume < volume && tickToKlineObject.lastPrice > swh) {
 			this->preStatus = 1;
@@ -317,11 +318,12 @@ void PivotReversalStrategy::operator()()
 #ifdef MEStrategy
 			if (trend == 1) {
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load() / 2 + curVolume.load() % 2);
+				this->status = 6 | 8;
 			}
 #else
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load() / 2);
-#endif
 			this->status = 6 | 8;
+#endif
 		}
 		else if (curVolume < volume && tickToKlineObject.lastPrice < swl) {
 			this->preStatus = 2;

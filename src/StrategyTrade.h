@@ -423,6 +423,7 @@ private:
 	int barsNumLow = 0;
 	double presumProfit = 0;
 	double presumLoss = 0;
+	double maxSum = 0;
 
 	std::atomic<int> initVolume = 0;
 	bool last = false;

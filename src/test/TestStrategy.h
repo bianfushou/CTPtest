@@ -46,6 +46,48 @@ protected:
 };
 
 
+struct TradePoint {
+	double price;
+	double PivotPrice;
+	double firstTurnPrice;
+	int trend;
+	int startVolume;
+	int firstTurnVolume;
+	int curVolume;
+	bool isTurn = false;
+
+	void startTrade(double price, double PivotPrice, int trend, int startVolume) {
+		clear();
+		this->price = price;
+		this->PivotPrice = PivotPrice;
+		this->trend = trend;
+		this->startVolume = startVolume;
+	}
+
+	bool cmpTrend(int t) {
+		return t == trend;
+	}
+
+	void setFirst(double firstTurnPrice, int firstTurnVolume) {
+		if (!isTurn) {
+			isTurn = true;
+			this->firstTurnPrice = firstTurnPrice;
+			this->firstTurnVolume = firstTurnVolume;
+		}
+	}
+	void clear() {
+		isTurn = false;
+		this->price = 0;
+		this->PivotPrice = 0;
+		this->trend = 0;
+		this->startVolume = 0;
+	}
+
+	void setCurVolume(int curVolume) {
+		this->curVolume = curVolume;
+	}
+};
+
 class PivotReversalStrategy : public Strategy {
 public:
 	enum Type {
@@ -75,6 +117,7 @@ public:
 		winFile << "win"
 			<< "," <<"fail"<<","<< "盈亏比"<<","<< "盈利金额"<<","<< "亏损金额"<< std::endl;
 		instrumentField.VolumeMultiple = 1000;
+		this->instrumentField.PriceTick = 0.02;
 	}
 
 	~PivotReversalStrategy() {
@@ -86,7 +129,7 @@ public:
 
 	void resetStatus() {
 		taskQue.clear();
-		status = preStatus;
+		status.store(preStatus.load());
 	}
 	void statusDone() {
 		if (status >= 8) {
@@ -108,22 +151,7 @@ public:
 		return status;
 	}
 
-	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
-		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
-		memset(orderInsertReq.get(), 0, sizeof(CThostFtdcInputOrderField));
-		strcpy(orderInsertReq->InstrumentID, this->instrumentID.c_str());
-		orderInsertReq->Direction = direction;
-		orderInsertReq->CombOffsetFlag[0] = offsetFlag;
-		orderInsertReq->LimitPrice = lastPrice;
-		orderInsertReq->VolumeTotalOriginal = volume;
-		orderInsertReq->StopPrice = 0;
-		if (offsetFlag == THOST_FTDC_OF_Open) {
-			addCurVolume(volume, direction, lastPrice);
-		}
-		else {
-			subCurVolume(volume, direction, lastPrice);
-		}
-	}
+	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume);
 
 	void makeClearOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
 		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
@@ -233,6 +261,7 @@ public:
 
 			if (sum > 0) {
 				profit += sum;
+				presumProfit = sum;
 				winNum++;
 				if (loss != 0)
 					winFile << winNum << "," << faillNum<<"," << profit / loss <<","<< profit << ","<<loss<< std::endl;
@@ -242,6 +271,7 @@ public:
 			}
 			else {
 				faillNum++;
+				presumLoss = sum;
 				loss += (-sum);
 				if (loss != 0)
 					winFile <<winNum << "," << faillNum << "," << profit / loss << "," << profit << "," << loss << std::endl;
@@ -282,7 +312,16 @@ public:
 
 	double curCost(TThostFtdcVolumeType v, double p) {
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
-		return v * p - ps;
+		return v * p * instrumentField.VolumeMultiple - ps;
+	}
+
+	double sumCost(TThostFtdcVolumeType v, double p) {
+		double cost = curCost(v, p);
+		double sum = 0;
+		for (double cs : costArray) {
+			sum += cs;
+		}
+		return sum + cost;
 	}
 
 	void winRate(double pVal, double bVal, double wbVal, double fbVal) {
@@ -290,6 +329,64 @@ public:
 		this->bVal = bVal;
 		this->wbVal = wbVal;
 		this->fbVal = fbVal;
+	}
+
+	double getAvgWbVal() {
+#ifdef MEStrategy
+		if (presumProfit > 0) {
+			double avg = curVolume * wbVal * 0.8 + presumProfit * 0.2;
+			if (avg > curVolume * wbVal * 1.382) {
+				avg = curVolume * wbVal * 1.382;
+			}
+			return avg;
+		}
+		else {
+			return curVolume * wbVal;
+		}
+#else
+		return curVolume * wbVal;
+#endif
+	}
+
+	double getAvgFbVal() {
+#ifdef MEStrategy
+		if (presumLoss < 0) {
+			double avg = curVolume * fbVal * 0.8 - presumLoss * 0.2;
+			if (avg > curVolume * fbVal * 1.382) {
+				avg = curVolume * fbVal * 1.382;
+			}
+			return avg;
+		}
+		else {
+			return curVolume * fbVal;
+		}
+#else
+		return curVolume * wbVal;
+#endif
+	}
+
+	double getPivotSplit() {
+		double pivotSplit = 0;
+		if (!highPivotQue.empty()) {
+			pivotSplit = highPivotQue.back();
+		}
+		else {
+			pivotSplit = 10 * this->instrumentField.PriceTick;
+		}
+
+		if (lowPivotQue.size() > 0) {
+			pivotSplit -= lowPivotQue.back();
+		}
+		else {
+			pivotSplit -= 10 * this->instrumentField.PriceTick;
+			if (pivotSplit < 0) {
+				pivotSplit = -pivotSplit;
+			}
+			if (pivotSplit < 10 * this->instrumentField.PriceTick) {
+				pivotSplit = 10 * this->instrumentField.PriceTick;
+			}
+		}
+		return pivotSplit;
 	}
 
 private:
@@ -302,12 +399,15 @@ private:
 
 	CThostFtdcInvestorPositionField longInvestor;
 	CThostFtdcInvestorPositionField shortInvestor;
-	int preStatus = 0;
-	int status = 0; //0无单，1买多单， 2买空单
+	std::atomic<int> preStatus = 0;
+	std::atomic<int> status = 0; //0无单，1买多单， 2买空单
 	int left;
 	int right;
 	int barsNumHigh = 0;
 	int barsNumLow = 0;
+
+	std::vector<TradePoint> pointVec;
+	TradePoint curPoint;
 
 	double pVal = 0;
 	double bVal = 0;
@@ -316,7 +416,9 @@ private:
 
 	int winNum = 0;
 	int faillNum = 0;
-
+	double presumProfit = 0;
+	double presumLoss = 0;
+	int trend = 0;
 	int initVolume = 0;
 	bool last = false;
 	bool opStart = false;
@@ -326,6 +428,8 @@ private:
 	std::vector<double> costArray;
 	double profit = 0;
 	double loss = 0;
+	double maxsum;
+	int trendtimes = 0;
 	std::atomic<int> curVolume = 0;
 	CThostFtdcInstrumentField instrumentField;
 	CThostFtdcInstrumentCommissionRateField InstrumentCommissionRate;

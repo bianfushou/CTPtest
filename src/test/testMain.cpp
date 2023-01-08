@@ -29,15 +29,15 @@ void initStrategy() {
 	getConfig("Strategy", "RightBars", right);
 	getConfig("Strategy", "Volume", volume);
 	getConfig("Strategy", "RatioByVolume", RatioByVolume);
-	//std::string P, B, WB, FB;
-	//getConfig("Strategy", "P", P);
-	//getConfig("Strategy", "B", B);
-	//getConfig("Strategy", "WB", WB);
-	//getConfig("Strategy", "FB", FB);
+	std::string P, B, WB, FB;
+	getConfig("Strategy", "P", P);
+	getConfig("Strategy", "B", B);
+	getConfig("Strategy", "WB", WB);
+	getConfig("Strategy", "FB", FB);
 	auto pivotReversalStrategyPtr = std::make_shared<PivotReversalStrategy>();
 	pivotReversalStrategyPtr->setLRBars(std::stoi(left), std::stoi(right));
 	pivotReversalStrategyPtr->setRatioByVolume(std::stod(RatioByVolume));
-	//pivotReversalStrategyPtr->winRate(std::stod(P), std::stod(B), std::stod(WB), std::stod(FB));
+	pivotReversalStrategyPtr->winRate(std::stod(P), std::stod(B), std::stod(WB), std::stod(FB));
 	test_StrategyMap.emplace(test_pTradeInstrumentID, pivotReversalStrategyPtr);
 	test_StrategyMap[test_pTradeInstrumentID]->setInstrument(test_pTradeInstrumentID);
 	test_StrategyMap[test_pTradeInstrumentID]->setVolume(std::stoi(volume));
@@ -112,8 +112,10 @@ int main() {
 		dataField.Volume = std::stoi(tokens[2]);
 		test_KlineHash[InstrumentID].KLineFromRealtimeData(&dataField);
 		PivotReversalStrategy*  pivotStrategy = dynamic_cast<PivotReversalStrategy*>( test_StrategyMap[InstrumentID].get());
-		pivotStrategy->operator()();
-		pivotStrategy->operator()();
+		//pivotStrategy->operator()();
+		//pivotStrategy->operator()();
+		pivotStrategy->improve();
+		pivotStrategy->improve();
 	}
 
 	return 0;
