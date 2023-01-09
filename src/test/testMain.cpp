@@ -112,9 +112,9 @@ int main() {
 		dataField.Volume = std::stoi(tokens[2]);
 		test_KlineHash[InstrumentID].KLineFromRealtimeData(&dataField);
 		PivotReversalStrategy*  pivotStrategy = dynamic_cast<PivotReversalStrategy*>( test_StrategyMap[InstrumentID].get());
+		pivotStrategy->operator()();
 		//pivotStrategy->operator()();
-		//pivotStrategy->operator()();
-		pivotStrategy->improve();
+		//pivotStrategy->improve();
 		//pivotStrategy->improve();
 	}
 

@@ -439,6 +439,7 @@ public:
 	}
 
 	bool checkmarket(Strategy::Type type, double *p);
+	bool checkmarketClose(Strategy::Type type, double *p);
 private:
 	std::ofstream outFile;
 	std::ofstream CommissionFile;

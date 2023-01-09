@@ -88,15 +88,18 @@ void PivotReversalStrategy::operator()()
 	}
 	
 	if (tickToKlineObject.lastPrice > swh) {
-		
-		if (status == 0) {
-			double hprice = 0;
-			bool isCon = checkmarket(Strategy::Type::high, &hprice);
-			if (isCon) {
-				if (tickToKlineObject.lastPrice <= hprice) {
-					return;
-				}
+		double hprice = 0;
+		bool isCon = checkmarket(Strategy::Type::high, &hprice);
+		if (isCon) {
+			if (tickToKlineObject.lastPrice <= hprice) {
+				return;
 			}
+			else {
+				swh = hprice;
+			}
+		}
+		if (status == 0) {
+			
 			this->preStatus = 0;
 			this->status = 8 | 1;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
@@ -113,13 +116,6 @@ void PivotReversalStrategy::operator()()
 				if (this->status == 0) {
 					this->preStatus = 0;
 					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
-					double hprice = 0;
-					bool isCon = checkmarket(Strategy::Type::high, &hprice);
-					if (isCon) {
-						if (tickToKlineObject.lastPrice <= hprice) {
-							return;
-						}
-					}
 					if (tickToKlineObject.lastPrice > swh) {
 						this->status = 8 | 1;
 						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
@@ -139,14 +135,17 @@ void PivotReversalStrategy::operator()()
 		}
 	}
 	if (tickToKlineObject.lastPrice < swl) {
-		if (status == 0) {
-			double lprice = 0;
-			bool isCon = checkmarket(Strategy::Type::low, &lprice);
-			if (isCon) {
-				if (tickToKlineObject.lastPrice >= lprice) {
-					return;
-				}
+		double lprice = 0;
+		bool isCon = checkmarket(Strategy::Type::low, &lprice);
+		if (isCon) {
+			if (tickToKlineObject.lastPrice >= lprice) {
+				return;
 			}
+			else {
+				swl = lprice;
+			}
+		}
+		if (status == 0) {
 			preStatus = 0;
 			status = 8 | 2;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
@@ -163,13 +162,6 @@ void PivotReversalStrategy::operator()()
 				if (status == 0) {
 					this->preStatus = 0;
 					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
-					double lprice = 0;
-					bool isCon = checkmarket(Strategy::Type::low, &lprice);
-					if (isCon) {
-						if (tickToKlineObject.lastPrice >= lprice) {
-							return;
-						}
-					}
 					if (tickToKlineObject.lastPrice < swl) {
 						this->status = 8 | 2;
 						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
@@ -722,6 +714,13 @@ void PivotReversalStrategy::improve() {
 
 bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p) {
 	std::vector<double> pivotArray;
+	int times = gBarTimes / 60;
+	if (times < 5) {
+		times = 5;
+	}
+	else if (times > 50) {
+		times = 50;
+	}
 	switch(type){
 		case Strategy::Type::high:
 		{
@@ -732,8 +731,7 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p) {
 				}
 
 				*p = *std::max_element(pivotArray.cbegin(), pivotArray.cend());
-				double min = *std::max_element(pivotArray.cbegin(), pivotArray.cend());
-				if (fabs(pivotArray[0] - pivotArray[1]) < gBarTimes/60 * instrumentField.PriceTick && fabs(pivotArray[2] - pivotArray[1]) < gBarTimes / 60 * instrumentField.PriceTick) {
+				if (fabs(pivotArray[0] - pivotArray[1]) < times * instrumentField.PriceTick && fabs(pivotArray[2] - pivotArray[1]) < times * instrumentField.PriceTick) {
 					return true;
 				}
 				
@@ -750,13 +748,59 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p) {
 
 				*p = *std::min_element(pivotArray.cbegin(), pivotArray.cend());
 				double min = *std::max_element(pivotArray.cbegin(), pivotArray.cend());
-				if (fabs(pivotArray[0] - pivotArray[1]) < gBarTimes / 60 * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) < gBarTimes / 60 * instrumentField.PriceTick) {
+				if (fabs(pivotArray[0] - pivotArray[1]) < times * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) < times * instrumentField.PriceTick) {
 					return true;
 				}
 
 			}
 			break;
 		}
+	}
+	return false;
+}
+
+bool PivotReversalStrategy::checkmarketClose(Strategy::Type type, double *p) {
+	std::vector<double> pivotArray;
+	int times = gBarTimes / 60;
+	if (times < 8) {
+		times = 8;
+	}
+	else if (times > 15) {
+		times = 15;
+	}
+	switch (type) {
+	case Strategy::Type::high:
+	{
+		if (lowPivotQue.size() > 3) {
+			int i = 3;
+			for (auto it = lowPivotQue.rbegin(); i > 0; it++, i--) {
+				pivotArray.push_back(*it);
+			}
+
+			*p = *std::min_element(pivotArray.cbegin(), pivotArray.cend());
+			if (fabs(pivotArray[0] - pivotArray[1]) < times * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) < times * instrumentField.PriceTick) {
+				return true;
+			}
+
+		}
+		break;
+	}
+	case Strategy::Type::low:
+	{
+		if (highPivotQue.size() > 3) {
+			int i = 3;
+			for (auto it = highPivotQue.rbegin(); i > 0; it++, i--) {
+				pivotArray.push_back(*it);
+			}
+
+			*p = *std::max_element(pivotArray.cbegin(), pivotArray.cend());
+			if (fabs(pivotArray[0] - pivotArray[1]) < times * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) < times * instrumentField.PriceTick) {
+				return true;
+			}
+
+		}
+		break;
+	}
 	}
 	return false;
 }
