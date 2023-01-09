@@ -714,13 +714,14 @@ void PivotReversalStrategy::improve() {
 
 bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p) {
 	std::vector<double> pivotArray;
-	int times = gBarTimes / 60;
-	if (times < 5) {
-		times = 5;
+	double times = gBarTimes / 60;
+	if (times < 8) {
+		times = 8;
 	}
-	else if (times > 50) {
-		times = 50;
+	else if (times > 15) {
+		times = 15;
 	}
+	times += 0.1;
 	switch(type){
 		case Strategy::Type::high:
 		{
@@ -731,7 +732,7 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p) {
 				}
 
 				*p = *std::max_element(pivotArray.cbegin(), pivotArray.cend());
-				if (fabs(pivotArray[0] - pivotArray[1]) < times * instrumentField.PriceTick && fabs(pivotArray[2] - pivotArray[1]) < times * instrumentField.PriceTick) {
+				if (fabs(pivotArray[0] - pivotArray[1]) <= times * instrumentField.PriceTick && fabs(pivotArray[2] - pivotArray[1]) <= times * instrumentField.PriceTick) {
 					return true;
 				}
 				
@@ -747,8 +748,7 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p) {
 				}
 
 				*p = *std::min_element(pivotArray.cbegin(), pivotArray.cend());
-				double min = *std::max_element(pivotArray.cbegin(), pivotArray.cend());
-				if (fabs(pivotArray[0] - pivotArray[1]) < times * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) < times * instrumentField.PriceTick) {
+				if (fabs(pivotArray[0] - pivotArray[1]) <= times * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) <= times * instrumentField.PriceTick) {
 					return true;
 				}
 
