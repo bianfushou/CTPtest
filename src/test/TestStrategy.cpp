@@ -603,7 +603,7 @@ void PivotReversalStrategy::improve() {
 #ifdef MEStrategy
 		double pivotSplit = getPivotSplit();
 		pivotSplit = highPivotQue.back() - 0.618 * pivotSplit;
-		if ((tickToKlineObject.lastPrice < pivotSplit && trend == -1) || maxsum / sum > 1.79) {
+		if ((tickToKlineObject.lastPrice < pivotSplit && trend == -1) || sum <= getAvgWbVal() * 0.5) {
 #else
 		if (sum < wbVal * curVolume * 0.69) {
 #endif
@@ -620,7 +620,7 @@ void PivotReversalStrategy::improve() {
 #ifdef MEStrategy
 		double pivotSplit = getPivotSplit();
 		pivotSplit = lowPivotQue.back() + 0.618 * pivotSplit;
-		if ((tickToKlineObject.lastPrice > pivotSplit && trend == 1) || maxsum / sum > 1.79) {
+		if ((tickToKlineObject.lastPrice > pivotSplit && trend == 1) || sum <= getAvgWbVal() * 0.5) {
 #else
 		if (sum < wbVal * curVolume * 0.69) {
 #endif
