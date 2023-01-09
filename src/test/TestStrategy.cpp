@@ -567,6 +567,10 @@ void PivotReversalStrategy::improve() {
 			this->status = 8;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
+		else if (sum <= -getAvgFbVal() * 4 && sumCost(curVolume, lowPivotQue.back()) < -getAvgFbVal() * 5) {
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}
 		
 		else
 		
@@ -647,14 +651,18 @@ void PivotReversalStrategy::improve() {
 		}
 		else if (sum <= -getAvgFbVal() * 4 && maxsum < getAvgWbVal()/2) {
 			this->status = 8;
-			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}
+		else if (sum <= -getAvgFbVal() * 4 && sumCost(curVolume, lowPivotQue.back()) < -getAvgFbVal() * 5) {
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
 		else
 			
 #ifdef MEStrategy
 			auto iter = lowPivotQue.rbegin();
 			iter++;
-			if ((sum == 0 || maxsum / sum > 1.618) && maxsum >getAvgWbVal() && trend == 1) {
+			if ((sum == 0 || maxsum / sum > 1.618) && maxsum > getAvgWbVal() && trend == 1) {
 				this->preStatus = 2;
 				this->status = 6 | 8;
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load() / 2);
