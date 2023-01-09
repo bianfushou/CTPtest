@@ -4,6 +4,7 @@
 #include <thread>
 #include <mutex>
 #include <memory>
+#include <iostream>
 #include "TestStrategy.h"
 
 extern std::unordered_map<std::string, TickToKlineHelper> test_KlineHash;
