@@ -318,6 +318,7 @@ void PivotReversalStrategy::improve() {
 	if (!opStart) {
 		opStart = true;
 	}
+
 	if (status >= 8) {
 		return;
 	}
@@ -360,10 +361,25 @@ void PivotReversalStrategy::improve() {
 			swl = lowPivotQue.back();
 		}
 	}
+	TickToKlineHelper& tickToKlineObject = test_KlineHash.at(instrumentID);
 	if (swh <= 0.0 && swl <= 0.0) {
+
+		if (trend = -1 && highPivotQue.back() < tickToKlineObject.lastPrice) {
+			if (trendtimes > 0) {
+				trendtimes--;
+			}
+			trend = 1;
+		}
+
+		if (trend = 1 && lowPivotQue.back() > tickToKlineObject.lastPrice) {
+			if (trendtimes > 0) {
+				trendtimes--;
+			}
+			trend = -1;
+		}
 		return;
 	}
-	TickToKlineHelper& tickToKlineObject = test_KlineHash.at(instrumentID);
+
 	if (tickToKlineObject.lastPrice > swh && !highPivotQue.empty()) {
 		if (status == 0) {
 			this->preStatus = 0;
