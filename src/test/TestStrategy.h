@@ -438,6 +438,7 @@ public:
 		return pivotSplit;
 	}
 
+	bool checkmarket(Strategy::Type type, double *p);
 private:
 	std::ofstream outFile;
 	std::ofstream CommissionFile;
