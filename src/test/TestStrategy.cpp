@@ -553,7 +553,7 @@ void PivotReversalStrategy::improve() {
 #ifdef MEStrategy
 		auto iter = highPivotQue.rbegin();
 		iter++;
-		if ((sum <= -getAvgFbVal()* 2 && trendtimes >= 3 && trend == -1 && highPivotQue.back() < *iter)) {
+		if ((sum <= -getAvgFbVal() / 2 && trendtimes >= 3 && trend == -1 && highPivotQue.back() < *iter)) {
 #else
 		if (sum <= -getAvgFbVal()) {
 #endif
@@ -563,15 +563,17 @@ void PivotReversalStrategy::improve() {
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 
 		}
-		else if (sum <= -getAvgFbVal() * 4 && maxsum < getAvgWbVal() / 2) {
+		/*else if (sum <= -getAvgFbVal() && maxsum < getAvgWbVal() / 2) {
+			this->preStatus = 1;
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}*/
+		else if (sum <= -getAvgFbVal() * 0.618 && sumCost(curVolume, lowPivotQue.back()) < -getAvgFbVal() * 1.382) {
+			this->preStatus = 1;
 			this->status = 8;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
-		else if (sum <= -getAvgFbVal() * 4 && sumCost(curVolume, lowPivotQue.back()) < -getAvgFbVal() * 5) {
-			this->status = 8;
-			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
-		}
-		
+
 		else
 		
 			
@@ -604,7 +606,7 @@ void PivotReversalStrategy::improve() {
 #ifdef MEStrategy
 		double pivotSplit = getPivotSplit();
 		pivotSplit = highPivotQue.back() - 0.618 * pivotSplit;
-		if ((tickToKlineObject.lastPrice < pivotSplit && trend == -1) || sum <= getAvgWbVal() * 0.5) {
+		if ((tickToKlineObject.lastPrice < pivotSplit && trend == -1) || maxsum / sum > 1.79) {
 #else
 		if (sum < wbVal * curVolume * 0.69) {
 #endif
@@ -621,7 +623,7 @@ void PivotReversalStrategy::improve() {
 #ifdef MEStrategy
 		double pivotSplit = getPivotSplit();
 		pivotSplit = lowPivotQue.back() + 0.618 * pivotSplit;
-		if ((tickToKlineObject.lastPrice > pivotSplit && trend == 1) || sum <= getAvgWbVal() * 0.5) {
+		if ((tickToKlineObject.lastPrice > pivotSplit && trend == 1) || maxsum / sum > 1.79) {
 #else
 		if (sum < wbVal * curVolume * 0.69) {
 #endif
@@ -640,7 +642,7 @@ void PivotReversalStrategy::improve() {
 #ifdef MEStrategy
 		auto iter = lowPivotQue.rbegin();
 		iter++;
-		if (sum <= -getAvgFbVal() * 2 && trendtimes >= 3 && trend == 1 && lowPivotQue.back() > *iter ) {
+		if (sum <= -getAvgFbVal() / 2 && trendtimes >= 3 && trend == 1 && lowPivotQue.back() > *iter ) {
 #else
 		if (sum <= -(fbVal* curVolume)) {
 #endif
@@ -649,12 +651,14 @@ void PivotReversalStrategy::improve() {
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
 
 		}
-		else if (sum <= -getAvgFbVal() * 4 && maxsum < getAvgWbVal()/2) {
+		/*else if (sum <= -getAvgFbVal() && maxsum < getAvgWbVal()/2) {
 			this->status = 8;
+			this->preStatus = 2;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
-		}
-		else if (sum <= -getAvgFbVal() * 4 && sumCost(curVolume, lowPivotQue.back()) < -getAvgFbVal() * 5) {
+		}*/
+		else if (sum <= -0.618*getAvgFbVal() && sumCost(curVolume, highPivotQue.back()) < -getAvgFbVal() * 1.382) {
 			this->status = 8;
+			this->preStatus = 2;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
 		else

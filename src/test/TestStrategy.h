@@ -221,6 +221,7 @@ public:
 		curVolume += v;
 		double ps = v * (p*InstrumentCommissionRate.OpenRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.OpenRatioByVolume);
 		double cost = -(v * p * instrumentField.VolumeMultiple + ps);
+		
 		CommissionFile << instrumentID << ","
 			<< v << ","
 			<< p << ","
@@ -231,7 +232,9 @@ public:
 		if (status >= 8) {
 			status -= 8;
 		}
-
+		if (status == 2) {
+			cost = -(v * p * instrumentField.VolumeMultiple - ps);
+		}
 		costArray.push_back(cost);
 	}
 
@@ -239,6 +242,9 @@ public:
 		curVolume -= v;
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
 		double cost = v * p*instrumentField.VolumeMultiple - ps;
+		if (preStatus == 2 || preStatus == 6) {
+			cost = v * p*instrumentField.VolumeMultiple + ps;
+		}
 		CommissionFile << instrumentID << ","
 			<< v << ","
 			<< p << ","
@@ -257,6 +263,9 @@ public:
 			double sum = 0;
 			for (double cs : costArray) {
 				sum += cs;
+			}
+			if (preStatus == 2 || preStatus == 6) {
+				sum = -sum;
 			}
 
 			if (sum > 0) {
@@ -312,7 +321,12 @@ public:
 
 	double curCost(TThostFtdcVolumeType v, double p) {
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
-		return v * p * instrumentField.VolumeMultiple - ps;
+		if (status == 2 || status == 6) {
+			return v * p*instrumentField.VolumeMultiple + ps;
+		}
+		else {
+			return v * p * instrumentField.VolumeMultiple - ps;
+		}
 	}
 
 	double sumCost(TThostFtdcVolumeType v, double p) {
@@ -321,7 +335,12 @@ public:
 		for (double cs : costArray) {
 			sum += cs;
 		}
-		return sum + cost;
+		if (status == 2 || status == 6) {
+			return -(sum + cost);
+		}
+		else {
+			return sum + cost;
+		}
 	}
 
 	void winRate(double pVal, double bVal, double wbVal, double fbVal) {
@@ -332,6 +351,7 @@ public:
 	}
 
 	double getAvgWbVal() {
+
 #ifdef MEStrategy
 		if (presumProfit > 0) {
 			double avg = curVolume * wbVal * 0.8 + presumProfit * 0.2;
