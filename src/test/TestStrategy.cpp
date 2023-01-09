@@ -21,21 +21,27 @@ void PivotReversalStrategy::makeOrder(double lastPrice, TThostFtdcDirectionType 
 	orderInsertReq->VolumeTotalOriginal = volume;
 	orderInsertReq->StopPrice = 0;
 	if (offsetFlag == THOST_FTDC_OF_Open) {
-		addCurVolume(volume, direction, lastPrice);
+		
 		if (preStatus == 0) {
 			maxsum = 0;
 			trendtimes = 0;
 			if (direction == THOST_FTDC_D_Buy) {
 				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 				curPoint.startTrade(lastPrice, highPivotQue.back(), trend, tickToKlineObject.m_volumeVec.back());
+				curPoint.highIndx = highPivotInd;
+				curPoint.lowIndx = lowPivotInd;
 			}
 			else if ((direction == THOST_FTDC_D_Sell)) {
 				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 				curPoint.startTrade(lastPrice, lowPivotQue.back(), trend, tickToKlineObject.m_volumeVec.back());
+				curPoint.lowIndx = lowPivotInd;
+				curPoint.highIndx = highPivotInd;
 			}
 		}
+		addCurVolume(volume, direction, lastPrice);
 	}
 	else {
+		curPoint.sellPrice = lastPrice;
 		subCurVolume(volume, direction, lastPrice);
 	}
 }
@@ -72,6 +78,14 @@ void PivotReversalStrategy::operator()()
 		swl = lowPivotQue.back();
 	}
 	TickToKlineHelper& tickToKlineObject = test_KlineHash.at(instrumentID);
+	if (swh < swl && tickToKlineObject.lastPrice > swh - this->instrumentField.PriceTick && 
+		tickToKlineObject.lastPrice < swl + this->instrumentField.PriceTick) {
+		return;
+	}
+	if (fabs(swh - swl) <= this->instrumentField.PriceTick && fabs(swh - tickToKlineObject.lastPrice) <= this->instrumentField.PriceTick) {
+		return;
+	}
+	
 	if (tickToKlineObject.lastPrice > swh) {
 		if (status == 0) {
 			this->preStatus = 0;
@@ -88,15 +102,17 @@ void PivotReversalStrategy::operator()()
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swh]() {
-				this->preStatus = 0;
 				std::lock_guard<std::mutex> lk(strategyMutex);
-				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
-				if (tickToKlineObject.lastPrice > swh) {
-					this->status = 8 | 1;
-					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
-				}
-				else {
-					this->status = 0;
+				if (this->status == 0) {
+					this->preStatus = 0;
+					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
+					if (tickToKlineObject.lastPrice > swh) {
+						this->status = 8 | 1;
+						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
+					}
+					else {
+						this->status = 0;
+					}
 				}
 
 			});
@@ -123,14 +139,16 @@ void PivotReversalStrategy::operator()()
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swl]() {
 				std::lock_guard<std::mutex> lk(strategyMutex);
-				this->preStatus = 0;
-				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
-				if (tickToKlineObject.lastPrice < swl) {
-					this->status = 8 | 2;
-					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
-				}
-				else {
-					this->status = 0;
+				if (status == 0) {
+					this->preStatus = 0;
+					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
+					if (tickToKlineObject.lastPrice < swl) {
+						this->status = 8 | 2;
+						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
+					}
+					else {
+						this->status = 0;
+					}
 				}
 			});
 
@@ -294,6 +312,7 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 	}
 	int pretrend = trend;
 	if (!isMin) {
+		highPivotInd ++;
 		highPivotQue.push_back(pivotVal);
 		outFile << "high:" << pivotVal << std::endl;
 		trend = -1;
@@ -308,6 +327,7 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 			lowPivotQue.pop_front();
 		}
 		trend = 1;
+		lowPivotInd ++;
 	}
 	if (trend != pretrend) {
 		trendtimes++;
@@ -362,25 +382,19 @@ void PivotReversalStrategy::improve() {
 			swl = lowPivotQue.back();
 		}
 	}
-	TickToKlineHelper& tickToKlineObject = test_KlineHash.at(instrumentID);
+	
 	if (swh <= 0.0 && swl <= 0.0) {
-
-		if (trend = -1 && highPivotQue.back() < tickToKlineObject.lastPrice) {
-			if (trendtimes > 0) {
-				trendtimes--;
-			}
-			trend = 1;
-		}
-
-		if (trend = 1 && lowPivotQue.back() > tickToKlineObject.lastPrice) {
-			if (trendtimes > 0) {
-				trendtimes--;
-			}
-			trend = -1;
-		}
 		return;
 	}
 
+	TickToKlineHelper& tickToKlineObject = test_KlineHash.at(instrumentID);
+	if (swh < swl && tickToKlineObject.lastPrice > swh - this->instrumentField.PriceTick &&
+		tickToKlineObject.lastPrice < swl + this->instrumentField.PriceTick) {
+		return;
+	}
+	if (fabs(swh - swl) <= this->instrumentField.PriceTick && fabs(swh - tickToKlineObject.lastPrice) <= this->instrumentField.PriceTick) {
+		return;
+	}
 	if (tickToKlineObject.lastPrice > swh && !highPivotQue.empty()) {
 		if (status == 0) {
 			this->preStatus = 0;
@@ -399,28 +413,31 @@ void PivotReversalStrategy::improve() {
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swh]() {
-				this->preStatus = 0;
+				
 				std::lock_guard<std::mutex> lk(this->strategyMutex);
-				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
+				if (status == 0) {
+					this->preStatus = 0;
+					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 #ifdef MEStrategy
-				bool into = false;
-				if (highPivotQue.size() > 1) {
-					auto iter = highPivotQue.rbegin();
-					iter++;
-					if (*iter - swh > 0.382 * getPivotSplit()) {
-						into = true;
+					bool into = false;
+					if (highPivotQue.size() > 1) {
+						auto iter = highPivotQue.rbegin();
+						iter++;
+						if (*iter - swh > 0.382 * getPivotSplit()) {
+							into = true;
+						}
 					}
-				}
-				if (tickToKlineObject.lastPrice > swh + 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice > swh && into)) {
+					if (tickToKlineObject.lastPrice > swh + 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice > swh && into)) {
 #else
-				if (tickToKlineObject.lastPrice > swh) {
+					if (tickToKlineObject.lastPrice > swh) {
 #endif
-					this->status = 8 | 1;
-					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
-					
-				}
-				else {
-					this->status = 0;
+						this->status = 8 | 1;
+						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
+
+					}
+					else {
+						this->status = 0;
+					}
 				}
 
 				});
@@ -436,30 +453,31 @@ void PivotReversalStrategy::improve() {
 			}
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swh]() {
-				this->preStatus = 0;
 				std::lock_guard<std::mutex> lk(strategyMutex);
-				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
+				if (status == 0) {
+					this->preStatus = 0;
+					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 #ifdef MEStrategy
-				bool into = false;
-				if (highPivotQue.size() > 1) {
-					auto iter = highPivotQue.rbegin();
-					iter++;
-					if (*iter - swh > 0.382 * getPivotSplit()) {
-						into = true;
+					bool into = false;
+					if (highPivotQue.size() > 1) {
+						auto iter = highPivotQue.rbegin();
+						iter++;
+						if (*iter - swh > 0.382 * getPivotSplit()) {
+							into = true;
+						}
+					}
+					if (tickToKlineObject.lastPrice > swh + 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice > swh && into)) {
+#else
+					if (tickToKlineObject.lastPrice > swh) {
+#endif
+						this->status = 8 | 1;
+						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
+
+					}
+					else {
+						this->status = 0;
 					}
 				}
-				if (tickToKlineObject.lastPrice > swh + 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice > swh && into)) {
-#else
-				if (tickToKlineObject.lastPrice > swh) {
-#endif
-					this->status = 8 | 1;
-					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
-					
-				}
-				else {
-					this->status = 0;
-				}
-
 				});
 			return;
 			}
@@ -482,27 +500,29 @@ void PivotReversalStrategy::improve() {
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swl]() {
 				std::lock_guard<std::mutex> lk(strategyMutex);
-				this->preStatus = 0;
-				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
+				if (status == 0) {
+					this->preStatus = 0;
+					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 #ifdef MEStrategy
-				bool into = false;
-				if (lowPivotQue.size() > 1) {
-					auto iter = lowPivotQue.rbegin();
-					iter++;
-					if (*iter - swl < -0.382 * getPivotSplit()) {
-						into = true;
+					bool into = false;
+					if (lowPivotQue.size() > 1) {
+						auto iter = lowPivotQue.rbegin();
+						iter++;
+						if (*iter - swl < -0.382 * getPivotSplit()) {
+							into = true;
+						}
 					}
-				}
-				if (tickToKlineObject.lastPrice < swl - 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice < swl && into)) {
+					if (tickToKlineObject.lastPrice < swl - 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice < swl && into)) {
 #else
-				if (tickToKlineObject.lastPrice < swl) {
+					if (tickToKlineObject.lastPrice < swl) {
 #endif
-					this->status = 8 | 2;
-					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
-					
-				}
-				else {
-					this->status = 0;
+						this->status = 8 | 2;
+						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
+
+					}
+					else {
+						this->status = 0;
+					}
 				}
 				});
 			return;
@@ -518,33 +538,35 @@ void PivotReversalStrategy::improve() {
 			auto lastPrice = tickToKlineObject.lastPrice;
 			taskQue.emplace_back([this, swl]() {
 				std::lock_guard<std::mutex> lk(strategyMutex);
-				this->preStatus = 0;
-				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
+				if (status == 0) {
+					this->preStatus = 0;
+					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 #ifdef MEStrategy
-				bool into = false;
-				if (lowPivotQue.size() > 1) {
-					auto iter = lowPivotQue.rbegin();
-					iter++;
-					if (*iter - swl < -0.382 * getPivotSplit()) {
-						into = true;
+					bool into = false;
+					if (lowPivotQue.size() > 1) {
+						auto iter = lowPivotQue.rbegin();
+						iter++;
+						if (*iter - swl < -0.382 * getPivotSplit()) {
+							into = true;
+						}
 					}
-				}
-				if (tickToKlineObject.lastPrice < swl - 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice < swl && into)) {
+					if (tickToKlineObject.lastPrice < swl - 3.2 * this->instrumentField.PriceTick || (tickToKlineObject.lastPrice < swl && into)) {
 #else
-				if (tickToKlineObject.lastPrice < swl) {
+					if (tickToKlineObject.lastPrice < swl) {
 #endif
-					this->status = 8 | 2;
-					makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
-					
-				}
-				else {
-					this->status = 0;
+						this->status = 8 | 2;
+						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
+
+					}
+					else {
+						this->status = 0;
+					}
 				}
 				});
 			return;
 			}
 		}
-	
+
 	if (status == 1) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
 		if (sum > maxsum) {
@@ -563,24 +585,14 @@ void PivotReversalStrategy::improve() {
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 
 		}
-		/*else if (sum <= -getAvgFbVal() && maxsum < getAvgWbVal() / 2) {
-			this->preStatus = 1;
-			this->status = 8;
-			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
-		}*/
-		else if (sum <= -getAvgFbVal() * 0.618 && sumCost(curVolume, lowPivotQue.back()) < -getAvgFbVal() * 1.382) {
+		else if (sum <= -2 * getAvgFbVal() && sumCost(curVolume, lowPivotQue.back()) < -getAvgFbVal() * 3) {
 			this->preStatus = 1;
 			this->status = 8;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
-
-		else
-		
 			
 			
 #ifdef MEStrategy
-		auto iter = highPivotQue.rbegin();
-		iter++;
 		if ((sum == 0 || maxsum / sum > 1.618) && maxsum > getAvgWbVal() && trend == -1) {
 			this->preStatus = 1;
 			this->status = 5 | 8;
@@ -651,21 +663,12 @@ void PivotReversalStrategy::improve() {
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
 
 		}
-		/*else if (sum <= -getAvgFbVal() && maxsum < getAvgWbVal()/2) {
-			this->status = 8;
-			this->preStatus = 2;
-			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
-		}*/
-		else if (sum <= -0.618*getAvgFbVal() && sumCost(curVolume, highPivotQue.back()) < -getAvgFbVal() * 1.382) {
+		else if (sum <= -2 * getAvgFbVal() && sumCost(curVolume, highPivotQue.back()) < -getAvgFbVal() * 3) {
 			this->status = 8;
 			this->preStatus = 2;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
-		else
-			
 #ifdef MEStrategy
-			auto iter = lowPivotQue.rbegin();
-			iter++;
 			if ((sum == 0 || maxsum / sum > 1.618) && maxsum > getAvgWbVal() && trend == 1) {
 				this->preStatus = 2;
 				this->status = 6 | 8;
@@ -676,7 +679,6 @@ void PivotReversalStrategy::improve() {
 			this->status = 6 | 8;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load() / 2);
 #endif
-			
 	
 		
 		else if (curVolume < volume && tickToKlineObject.lastPrice < swl) {
@@ -686,5 +688,6 @@ void PivotReversalStrategy::improve() {
 			
 		}
 	}
+	
 	
 }

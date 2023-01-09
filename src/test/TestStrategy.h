@@ -54,7 +54,10 @@ struct TradePoint {
 	int startVolume;
 	int firstTurnVolume;
 	int curVolume;
+	double sellPrice;
 	bool isTurn = false;
+	int highIndx = 0;
+	int lowIndx = 0;
 
 	void startTrade(double price, double PivotPrice, int trend, int startVolume) {
 		clear();
@@ -111,7 +114,9 @@ public:
 			<< "手续费" << ","
 			<< "开平仓标志" << ","
 			<< "开平仓方向" << ","
-			<< "盈利金额"
+			<< "盈利金额" << ","
+			<<"enter index" << ","
+			<<"H/L" <<","<<"status"<<","<<"prestatus"<<","<<"PivotPrice"
 			<< std::endl;
 		winFile.open(instrumentID + "_winRate.csv");
 		winFile << "win"
@@ -222,19 +227,33 @@ public:
 		double ps = v * (p*InstrumentCommissionRate.OpenRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.OpenRatioByVolume);
 		double cost = -(v * p * instrumentField.VolumeMultiple + ps);
 		
-		CommissionFile << instrumentID << ","
-			<< v << ","
-			<< p << ","
-			<< ps << ","
-			<< THOST_FTDC_OF_Open << ","
-			<< direction << ","
-			<< cost << std::endl;
+		
 		if (status >= 8) {
 			status -= 8;
 		}
 		if (status == 2) {
 			cost = -(v * p * instrumentField.VolumeMultiple - ps);
+			CommissionFile << instrumentID << ","
+				<< v << ","
+				<< p << ","
+				<< ps << ","
+				<< THOST_FTDC_OF_Open << ","
+				<< direction << ","
+				<< cost << ","
+				<< curPoint.lowIndx << "," <<"L" << "," << status<< "," << preStatus.load() << "," << curPoint.PivotPrice
+				<<std::endl;
 		}
+		else {
+			CommissionFile << instrumentID << ","
+				<< v << ","
+				<< p << ","
+				<< ps << ","
+				<< THOST_FTDC_OF_Open << ","
+				<< direction << ","
+				<< cost << ","
+				<< curPoint.highIndx << "," <<"H" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice << std::endl;
+		}
+		
 		costArray.push_back(cost);
 	}
 
@@ -244,14 +263,24 @@ public:
 		double cost = v * p*instrumentField.VolumeMultiple - ps;
 		if (preStatus == 2 || preStatus == 6) {
 			cost = v * p*instrumentField.VolumeMultiple + ps;
+			CommissionFile << instrumentID << ","
+				<< v << ","
+				<< p << ","
+				<< ps << ","
+				<< THOST_FTDC_OF_CloseToday << ","
+				<< direction << ","
+				<< cost << "," << curPoint.lowIndx << "," <<"L" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice <<std::endl;
 		}
-		CommissionFile << instrumentID << ","
-			<< v << ","
-			<< p << ","
-			<< ps << ","
-			<< THOST_FTDC_OF_CloseToday << ","
-			<< direction << ","
-			<< cost << std::endl;
+		else {
+			CommissionFile << instrumentID << ","
+				<< v << ","
+				<< p << ","
+				<< ps << ","
+				<< THOST_FTDC_OF_CloseToday << ","
+				<< direction << ","
+				<< cost << "," << curPoint.highIndx << "," <<"H" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice << std::endl;
+		}
+		
 		costArray.push_back(cost);
 		bool clear = false;
 		if (curVolume > 0 && status - 8 < 3 && status - 8 >= 0) {
@@ -354,9 +383,9 @@ public:
 
 #ifdef MEStrategy
 		if (presumProfit > 0) {
-			double avg = curVolume * wbVal * 0.8 + presumProfit * 0.2;
-			if (avg > curVolume * wbVal * 1.382) {
-				avg = curVolume * wbVal * 1.382;
+			double avg = curVolume * wbVal * 0.618 + presumProfit * 0.382;
+			if (avg > curVolume * wbVal * 2) {
+				avg = curVolume * wbVal * 2;
 			}
 			return avg;
 		}
@@ -371,9 +400,9 @@ public:
 	double getAvgFbVal() {
 #ifdef MEStrategy
 		if (presumLoss < 0) {
-			double avg = curVolume * fbVal * 0.8 - presumLoss * 0.2;
-			if (avg > curVolume * fbVal * 1.382) {
-				avg = curVolume * fbVal * 1.382;
+			double avg = curVolume * fbVal * 0.618 - presumLoss * 0.382;
+			if (avg > curVolume * fbVal * 2) {
+				avg = curVolume * fbVal * 2;
 			}
 			return avg;
 		}
@@ -415,7 +444,9 @@ private:
 	std::ofstream winFile;
 	std::mutex strategyMutex;
 	std::list<double> highPivotQue;
+	std::atomic<int> highPivotInd = 0;
 	std::list<double> lowPivotQue;
+	std::atomic<int> lowPivotInd = 0;
 
 	CThostFtdcInvestorPositionField longInvestor;
 	CThostFtdcInvestorPositionField shortInvestor;

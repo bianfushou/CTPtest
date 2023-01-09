@@ -115,7 +115,7 @@ int main() {
 		//pivotStrategy->operator()();
 		//pivotStrategy->operator()();
 		pivotStrategy->improve();
-		pivotStrategy->improve();
+		//pivotStrategy->improve();
 	}
 
 	return 0;
