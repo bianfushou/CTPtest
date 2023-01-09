@@ -550,7 +550,10 @@ void PivotReversalStrategy::improve() {
 			this->status = 8;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
-		
+		else if (sum <= -getAvgFbVal() * 4 && sumCost(curVolume, lowPivotQue.back()) < -getAvgFbVal() * 5) {
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}
 		else
 		
 			
@@ -629,6 +632,10 @@ void PivotReversalStrategy::improve() {
 
 		}
 		else if (sum <= -getAvgFbVal() * 4 && maxsum < getAvgWbVal()/2) {
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}
+		else if (sum <= -getAvgFbVal() * 4 && sumCost(curVolume, highPivotQue.back()) < -getAvgFbVal() * 5) {
 			this->status = 8;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
