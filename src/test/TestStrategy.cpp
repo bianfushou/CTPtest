@@ -336,7 +336,12 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 		if (highPivotQue.size() > 100) {
 			highPivotQue.pop_front();
 		}
-		hAvgTimes = (hAvgTimes * (highPivotInd-1) + pivotVal - pivotArray[0])/ highPivotInd;
+		if (highPivotInd < 50) {
+			hAvgTimes = (hAvgTimes * (highPivotInd - 1) + pivotVal - pivotArray[0]) / highPivotInd;
+		}
+		else {
+			hAvgTimes = (hAvgTimes * 49 + +pivotVal - pivotArray[0]) / 50;
+		}
 	}
 	else {
 		lowPivotQue.push_back(pivotVal);
@@ -346,7 +351,12 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 		}
 		trend = 1;
 		lowPivotInd ++;
-		lAvgTimes = (lAvgTimes * (lowPivotInd - 1) + pivotArray[0] -pivotVal) / lowPivotInd;
+		if (lowPivotInd < 50) {
+			lAvgTimes = (lAvgTimes * (lowPivotInd - 1) + pivotArray[0] - pivotVal) / lowPivotInd;
+		}
+		else {
+			lAvgTimes = (lAvgTimes * 49 + pivotArray[0] - pivotVal) / 50;
+		}
 	}
 	if (trend != pretrend) {
 		trendtimes++;
@@ -730,6 +740,11 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p, double* 
 				}
 				
 			}
+			else {
+				*p = highPivotQue.back() + hAvgTimes;
+				*lp = highPivotQue.back();
+				return true;
+			}
 			break;
 		}
 		case Strategy::Type::low:
@@ -746,6 +761,11 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p, double* 
 					return true;
 				}
 
+			}
+			else {
+				*p = lowPivotQue.back() - hAvgTimes;
+				*lp = lowPivotQue.back();
+				return true;
 			}
 			break;
 		}
