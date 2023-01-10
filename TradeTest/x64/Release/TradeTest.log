@@ -1,1 +1,9 @@
-﻿  TradeTest.vcxproj -> D:\work\CTPtest\x64\Release\TradeTest.exe
+﻿  TestStrategy.cpp
+d:\work\ctptest\src\test\teststrategy.cpp(275): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+d:\work\ctptest\src\test\teststrategy.cpp(289): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+  正在生成代码
+  2 of 1534 functions ( 0.1%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  已完成代码的生成
+  TradeTest.vcxproj -> D:\work\CTPtest\x64\Release\TradeTest.exe

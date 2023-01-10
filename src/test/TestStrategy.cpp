@@ -736,6 +736,12 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p, double* 
 				*p = std::max(pivotArray[0], pivotArray[1]);
 				*lp = std::min(pivotArray[0], pivotArray[1]);
 				if (fabs(pivotArray[0] - pivotArray[1]) <= hAvgTimes * 2) {
+					if (fabs(pivotArray[0] - pivotArray[1]) <= hAvgTimes && pivotArray[0] < pivotArray[1]) {
+						*p = (pivotArray[0] + pivotArray[1]) / 2 + hAvgTimes;
+					}
+					else if(fabs(pivotArray[0] - pivotArray[1]) <= hAvgTimes){
+						*p = *lp + hAvgTimes;
+					}
 					return true;
 				}
 				
@@ -758,6 +764,12 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p, double* 
 				*p = std::min(pivotArray[0], pivotArray[1]);
 				*lp = std::max(pivotArray[0], pivotArray[1]);
 				if (fabs(pivotArray[0] - pivotArray[1]) <= lAvgTimes * 2) {
+					if (fabs(pivotArray[0] - pivotArray[1]) <= lAvgTimes && pivotArray[0] > pivotArray[1]) {
+						*p = (pivotArray[0] + pivotArray[1]) / 2 - lAvgTimes;
+					}
+					else if (fabs(pivotArray[0] - pivotArray[1]) <= lAvgTimes) {
+						*p = *lp - lAvgTimes;
+					}
 					return true;
 				}
 
