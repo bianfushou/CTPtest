@@ -6,7 +6,6 @@
 #include <memory>
 #include <iostream>
 #include "TestStrategy.h"
-#include <algorithm>
 
 extern std::unordered_map<std::string, TickToKlineHelper> test_KlineHash;
 extern int gBarTimes;
@@ -111,22 +110,6 @@ void PivotReversalStrategy::operator()()
 				this->status = 8;
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 			}
-			auto lastPrice = tickToKlineObject.lastPrice;
-			taskQue.emplace_back([this, swh]() {
-				std::lock_guard<std::mutex> lk(strategyMutex);
-				if (this->status == 0) {
-					this->preStatus = 0;
-					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
-					if (tickToKlineObject.lastPrice > swh) {
-						this->status = 8 | 1;
-						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume);
-					}
-					else {
-						this->status = 0;
-					}
-				}
-
-			});
 
 		}
 		else if (status == 1 && curVolume < volume) {
@@ -134,6 +117,7 @@ void PivotReversalStrategy::operator()()
 			this->status = 8 | 1;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
 		}
+		return;
 	}
 	if (tickToKlineObject.lastPrice < swl) {
 		double lprice = 0;
@@ -158,28 +142,13 @@ void PivotReversalStrategy::operator()()
 				this->status = 8;
 				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_CloseToday, curVolume.load());
 			}
-			auto lastPrice = tickToKlineObject.lastPrice;
-			taskQue.emplace_back([this, swl]() {
-				std::lock_guard<std::mutex> lk(strategyMutex);
-				if (status == 0) {
-					this->preStatus = 0;
-					TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
-					if (tickToKlineObject.lastPrice < swl) {
-						this->status = 8 | 2;
-						makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_Open, volume);
-					}
-					else {
-						this->status = 0;
-					}
-				}
-			});
-
 		}
 		else if (status == 2 && curVolume < volume) {
 			this->preStatus = 2;
 			this->status = 8 | 2;
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
 		}
+		return;
 	}
 	if (status == 1) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);

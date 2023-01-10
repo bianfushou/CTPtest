@@ -134,6 +134,7 @@
     <ClInclude Include="..\src\Config.h" />
     <ClInclude Include="..\src\log.h" />
     <ClInclude Include="..\src\test\TestStrategy.h" />
+    <ClInclude Include="..\src\test\TestStrategy2.h" />
     <ClInclude Include="..\src\TickToKlineHelper.h" />
   </ItemGroup>
   <ItemGroup>

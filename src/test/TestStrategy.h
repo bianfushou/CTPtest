@@ -13,7 +13,7 @@
 #include <fstream>
 #include <mutex>
 #include <atomic>
-
+#include <algorithm>
 class Strategy {
 public:
 	enum Type {
@@ -91,6 +91,26 @@ struct TradePoint {
 	}
 };
 
+struct ShakeTable {
+	void clear() { isLow = false; isHigh = false; }
+	void setHigh(std::vector<double>& highvec, double hAvgTimes) {
+		high = *std::max_element(highvec.cbegin(), highvec.cend());
+		high += 2 * hAvgTimes;
+		isHigh = true;
+	}
+
+	void setLow(std::vector<double>& lowvec, double lAvgTimes) {
+		low = *std::max_element(lowvec.cbegin(), lowvec.cend());
+		low += 2 * lAvgTimes;
+		isLow = true;
+	}
+private:
+	double high;
+	double low;
+	bool isHigh = false;
+	bool isLow = false;
+};
+
 class PivotReversalStrategy : public Strategy {
 public:
 	enum Type {
@@ -116,7 +136,7 @@ public:
 			<< "开平仓方向" << ","
 			<< "盈利金额" << ","
 			<<"enter index" << ","
-			<<"H/L" <<","<<"status"<<","<<"prestatus"<<","<<"PivotPrice"
+			<<"H/L" <<","<<"status"<<","<<"prestatus"<<","<<"PivotPrice"<<","<<"Win/Fail"
 			<< std::endl;
 		winFile.open(instrumentID + "_winRate.csv");
 		winFile << "win"
@@ -240,7 +260,7 @@ public:
 				<< THOST_FTDC_OF_Open << ","
 				<< direction << ","
 				<< cost << ","
-				<< curPoint.lowIndx << "," <<"L" << "," << status<< "," << preStatus.load() << "," << curPoint.PivotPrice
+				<< curPoint.lowIndx << "," <<"L" << "," << status<< "," << preStatus.load() << "," << curPoint.PivotPrice << "," << "N"
 				<<std::endl;
 		}
 		else {
@@ -251,7 +271,7 @@ public:
 				<< THOST_FTDC_OF_Open << ","
 				<< direction << ","
 				<< cost << ","
-				<< curPoint.highIndx << "," <<"H" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice << std::endl;
+				<< curPoint.highIndx << "," <<"H" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice << "," << "N" << std::endl;
 		}
 		
 		costArray.push_back(cost);
@@ -261,25 +281,6 @@ public:
 		curVolume -= v;
 		double ps = v * (p*InstrumentCommissionRate.CloseTodayRatioByMoney *instrumentField.VolumeMultiple + InstrumentCommissionRate.CloseTodayRatioByVolume);
 		double cost = v * p*instrumentField.VolumeMultiple - ps;
-		if (preStatus == 2 || preStatus == 6) {
-			cost = v * p*instrumentField.VolumeMultiple + ps;
-			CommissionFile << instrumentID << ","
-				<< v << ","
-				<< p << ","
-				<< ps << ","
-				<< THOST_FTDC_OF_CloseToday << ","
-				<< direction << ","
-				<< cost << "," << curPoint.lowIndx << "," <<"L" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice <<std::endl;
-		}
-		else {
-			CommissionFile << instrumentID << ","
-				<< v << ","
-				<< p << ","
-				<< ps << ","
-				<< THOST_FTDC_OF_CloseToday << ","
-				<< direction << ","
-				<< cost << "," << curPoint.highIndx << "," <<"H" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice << std::endl;
-		}
 		
 		costArray.push_back(cost);
 		bool clear = false;
@@ -287,9 +288,9 @@ public:
 			makeClearOrder(0, direction, THOST_FTDC_OF_CloseToday, curVolume.load());
 			clear = true;
 		}
-
+		double sum = 0;
 		if (curVolume == 0) {
-			double sum = 0;
+			
 			for (double cs : costArray) {
 				sum += cs;
 			}
@@ -320,11 +321,37 @@ public:
 			costArray.clear();
 			status = 0;
 		}
-		else if (status - 8 > 3) {
+		else if (status - 8 > 0) {
 			status = status - 8;
 		}
 		else if (!clear) {
 			throw "error";
+		}
+		std::string win = "N";
+		if (sum > 0) {
+			win = "W";
+		}
+		else {
+			win = "F";
+		}
+		if (preStatus == 2 || preStatus == 6) {
+			cost = v * p*instrumentField.VolumeMultiple + ps;
+			CommissionFile << instrumentID << ","
+				<< v << ","
+				<< p << ","
+				<< ps << ","
+				<< THOST_FTDC_OF_CloseToday << ","
+				<< direction << ","
+				<< cost << "," << curPoint.lowIndx << "," << "L" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice<<","<<win << std::endl;
+		}
+		else {
+			CommissionFile << instrumentID << ","
+				<< v << ","
+				<< p << ","
+				<< ps << ","
+				<< THOST_FTDC_OF_CloseToday << ","
+				<< direction << ","
+				<< cost << "," << curPoint.highIndx << "," << "H" << "," << status << "," << preStatus.load() << "," << curPoint.PivotPrice << "," << win << std::endl;
 		}
 	}
 
