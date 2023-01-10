@@ -438,16 +438,17 @@ public:
 		return pivotSplit;
 	}
 
-	bool checkmarket(Strategy::Type type, double *p);
-	bool checkmarketClose(Strategy::Type type, double *p);
+	bool checkmarket(Strategy::Type type, double *p, double* lp);
 private:
 	std::ofstream outFile;
 	std::ofstream CommissionFile;
 	std::ofstream winFile;
 	std::mutex strategyMutex;
 	std::list<double> highPivotQue;
+	double hAvgTimes = 0;
 	std::atomic<int> highPivotInd = 0;
 	std::list<double> lowPivotQue;
+	double lAvgTimes = 0;
 	std::atomic<int> lowPivotInd = 0;
 
 	CThostFtdcInvestorPositionField longInvestor;

@@ -89,7 +89,8 @@ void PivotReversalStrategy::operator()()
 	
 	if (tickToKlineObject.lastPrice > swh) {
 		double hprice = 0;
-		bool isCon = checkmarket(Strategy::Type::high, &hprice);
+		double lmhprice = 0;
+		bool isCon = checkmarket(Strategy::Type::high, &hprice, &lmhprice);
 		if (isCon) {
 			if (tickToKlineObject.lastPrice <= hprice) {
 				return;
@@ -136,7 +137,8 @@ void PivotReversalStrategy::operator()()
 	}
 	if (tickToKlineObject.lastPrice < swl) {
 		double lprice = 0;
-		bool isCon = checkmarket(Strategy::Type::low, &lprice);
+		double lmlprice = 0;
+		bool isCon = checkmarket(Strategy::Type::low, &lprice, &lmlprice);
 		if (isCon) {
 			if (tickToKlineObject.lastPrice >= lprice) {
 				return;
@@ -339,6 +341,7 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 		if (highPivotQue.size() > 100) {
 			highPivotQue.pop_front();
 		}
+		hAvgTimes = (hAvgTimes * (highPivotInd-1) + pivotVal - pivotArray[0])/ highPivotInd;
 	}
 	else {
 		lowPivotQue.push_back(pivotVal);
@@ -348,6 +351,7 @@ double PivotReversalStrategy::pivot(Strategy::Type type) {
 		}
 		trend = 1;
 		lowPivotInd ++;
+		lAvgTimes = (lAvgTimes * (lowPivotInd - 1) + pivotArray[0] -pivotVal) / lowPivotInd;
 	}
 	if (trend != pretrend) {
 		trendtimes++;
@@ -712,27 +716,21 @@ void PivotReversalStrategy::improve() {
 	
 }
 
-bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p) {
+bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p, double* lp) {
 	std::vector<double> pivotArray;
-	double times = gBarTimes / 60;
-	if (times < 8) {
-		times = 8;
-	}
-	else if (times > 15) {
-		times = 15;
-	}
-	times += 0.1;
+	
 	switch(type){
 		case Strategy::Type::high:
 		{
-			if(highPivotQue.size() > 3){
-				int i = 3;
+			if(highPivotQue.size() > 2){
+				int i = 2;
 				for (auto it = highPivotQue.rbegin(); i > 0; it++, i--) {
 					pivotArray.push_back(*it);
 				}
 
-				*p = *std::max_element(pivotArray.cbegin(), pivotArray.cend());
-				if (fabs(pivotArray[0] - pivotArray[1]) <= times * instrumentField.PriceTick && fabs(pivotArray[2] - pivotArray[1]) <= times * instrumentField.PriceTick) {
+				*p = std::max(pivotArray[0], pivotArray[1]);
+				*lp = std::min(pivotArray[0], pivotArray[1]);
+				if (fabs(pivotArray[0] - pivotArray[1]) <= hAvgTimes * 2) {
 					return true;
 				}
 				
@@ -741,66 +739,21 @@ bool PivotReversalStrategy::checkmarket(Strategy::Type type, double *p) {
 		}
 		case Strategy::Type::low:
 		{
-			if (lowPivotQue.size() > 3) {
-				int i = 3;
+			if (lowPivotQue.size() > 2) {
+				int i = 2;
 				for (auto it = lowPivotQue.rbegin(); i > 0; it++, i--) {
 					pivotArray.push_back(*it);
 				}
 
-				*p = *std::min_element(pivotArray.cbegin(), pivotArray.cend());
-				if (fabs(pivotArray[0] - pivotArray[1]) <= times * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) <= times * instrumentField.PriceTick) {
+				*p = std::min(pivotArray[0], pivotArray[1]);
+				*lp = std::max(pivotArray[0], pivotArray[1]);
+				if (fabs(pivotArray[0] - pivotArray[1]) <= lAvgTimes * 2) {
 					return true;
 				}
 
 			}
 			break;
 		}
-	}
-	return false;
-}
-
-bool PivotReversalStrategy::checkmarketClose(Strategy::Type type, double *p) {
-	std::vector<double> pivotArray;
-	int times = gBarTimes / 60;
-	if (times < 8) {
-		times = 8;
-	}
-	else if (times > 15) {
-		times = 15;
-	}
-	switch (type) {
-	case Strategy::Type::high:
-	{
-		if (lowPivotQue.size() > 3) {
-			int i = 3;
-			for (auto it = lowPivotQue.rbegin(); i > 0; it++, i--) {
-				pivotArray.push_back(*it);
-			}
-
-			*p = *std::min_element(pivotArray.cbegin(), pivotArray.cend());
-			if (fabs(pivotArray[0] - pivotArray[1]) < times * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) < times * instrumentField.PriceTick) {
-				return true;
-			}
-
-		}
-		break;
-	}
-	case Strategy::Type::low:
-	{
-		if (highPivotQue.size() > 3) {
-			int i = 3;
-			for (auto it = highPivotQue.rbegin(); i > 0; it++, i--) {
-				pivotArray.push_back(*it);
-			}
-
-			*p = *std::max_element(pivotArray.cbegin(), pivotArray.cend());
-			if (fabs(pivotArray[0] - pivotArray[1]) < times * instrumentField.PriceTick && fabs(pivotArray[1] - pivotArray[2]) < times * instrumentField.PriceTick) {
-				return true;
-			}
-
-		}
-		break;
-	}
 	}
 	return false;
 }
