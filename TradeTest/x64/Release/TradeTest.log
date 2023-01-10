@@ -1,10 +1,9 @@
 ﻿  TestStrategy.cpp
-f:\github\myfork\ctptest\src\test\teststrategy.cpp(280): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-f:\github\myfork\ctptest\src\test\teststrategy.cpp(294): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-  testMain.cpp
+f:\github\myfork\ctptest\src\test\teststrategy.cpp(306): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+f:\github\myfork\ctptest\src\test\teststrategy.cpp(320): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
   Generating code
-  59 of 1595 functions ( 3.7%) were compiled, the rest were copied from previous compilation.
-    3 functions were new in current compilation
-    10 functions had inline decision re-evaluated but remain unchanged
+  1 of 1598 functions (<0.1%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   TradeTest.vcxproj -> F:\github\myfork\CTPtest\x64\Release\TradeTest.exe

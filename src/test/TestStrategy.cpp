@@ -181,6 +181,32 @@ void PivotReversalStrategy::operator()()
 			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Buy, THOST_FTDC_OF_Open, volume - curVolume);
 		}
 	}
+	if (status == 1) {
+		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
+		if (sum < -2*getAvgFbVal()) {
+			double lprice = 0;
+			double lmlprice = 0;
+			bool isCon = checkmarket(Strategy::Type::low, &lprice, &lmlprice);
+			if (isCon && tickToKlineObject.lastPrice < lmlprice && tickToKlineObject.lastPrice > lprice && lowPivotQue.back() < lmlprice) {
+				this->preStatus = 1;
+				this->status = 8;
+				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+			}
+		}
+	}
+	else if (status == 2) {
+		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
+		if (sum < -2*getAvgFbVal()) {
+			double hprice = 0;
+			double lmhprice = 0;
+			bool isCon = checkmarket(Strategy::Type::high, &hprice, &lmhprice);
+			if (isCon && tickToKlineObject.lastPrice > lmhprice && tickToKlineObject.lastPrice < hprice && highPivotQue.back() > lmhprice) {
+				this->preStatus = 2;
+				this->status = 8;
+				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+			}
+		}
+	}
 }
 
 void PivotReversalStrategy::clearInvestor(CThostFtdcInvestorPositionField investor, int status, bool isLast) {
