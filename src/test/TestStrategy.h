@@ -25,7 +25,7 @@ public:
 	}
 
 	void setVolume(TThostFtdcVolumeType volume) {
-		this->volume = volume;
+		const_cast<TThostFtdcVolumeType&>(this->volume) = volume;
 	}
 
 	virtual void init() = 0;
@@ -41,7 +41,7 @@ public:
 	}
 protected:
 	std::string instrumentID;
-	TThostFtdcVolumeType volume = 1;
+	const TThostFtdcVolumeType volume = 1;
 	bool tradeStart = false;
 };
 
@@ -320,6 +320,7 @@ public:
 			}
 			costArray.clear();
 			status = 0;
+			maxsum = 0;
 		}
 		else if (status - 8 > 0) {
 			status = status - 8;
@@ -407,38 +408,11 @@ public:
 	}
 
 	double getAvgWbVal() {
-
-#ifdef MEStrategy
-		if (presumProfit > 0) {
-			double avg = curVolume * wbVal * 0.618 + presumProfit * 0.382;
-			if (avg > curVolume * wbVal * 2) {
-				avg = curVolume * wbVal * 2;
-			}
-			return avg;
-		}
-		else {
-			return curVolume * wbVal;
-		}
-#else
 		return curVolume * wbVal;
-#endif
 	}
 
 	double getAvgFbVal() {
-#ifdef MEStrategy
-		if (presumLoss < 0) {
-			double avg = curVolume * fbVal * 0.618 - presumLoss * 0.382;
-			if (avg > curVolume * fbVal * 2) {
-				avg = curVolume * fbVal * 2;
-			}
-			return avg;
-		}
-		else {
-			return curVolume * fbVal;
-		}
-#else
 		return curVolume * wbVal;
-#endif
 	}
 
 	double getPivotSplit() {
@@ -509,7 +483,8 @@ private:
 	std::vector<double> costArray;
 	double profit = 0;
 	double loss = 0;
-	double maxsum;
+	double maxsum = 0;
+	double limPrice = 0;
 	int trendtimes = 0;
 	std::atomic<int> curVolume = 0;
 	CThostFtdcInstrumentField instrumentField;

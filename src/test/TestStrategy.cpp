@@ -25,6 +25,7 @@ void PivotReversalStrategy::makeOrder(double lastPrice, TThostFtdcDirectionType 
 		if (preStatus == 0) {
 			maxsum = 0;
 			trendtimes = 0;
+			limPrice = lastPrice;
 			if (direction == THOST_FTDC_D_Buy) {
 				TickToKlineHelper& tickToKlineObject = test_KlineHash.at(this->instrumentID);
 				curPoint.startTrade(lastPrice, highPivotQue.back(), trend, tickToKlineObject.m_volumeVec.back());
@@ -150,30 +151,53 @@ void PivotReversalStrategy::operator()()
 		}
 		return;
 	}
+	
 	if (status == 1) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
-		if (sum < -2*getAvgFbVal()) {
-			double lprice = 0;
-			double lmlprice = 0;
-			bool isCon = checkmarket(Strategy::Type::low, &lprice, &lmlprice);
-			if (isCon && tickToKlineObject.lastPrice < lmlprice && tickToKlineObject.lastPrice > lprice && lowPivotQue.back() < lmlprice) {
-				this->preStatus = 1;
-				this->status = 8;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
-			}
+		if (maxsum < sum) {
+			maxsum = sum;
+		}
+		if (limPrice < tickToKlineObject.lastPrice) {
+			limPrice = tickToKlineObject.lastPrice;
+		}
+		if (limPrice < hAvgTimes + curPoint.PivotPrice  && tickToKlineObject.lastPrice < curPoint.PivotPrice - 2 * hAvgTimes) {
+			this->preStatus = 2;
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}
+		else if (tickToKlineObject.lastPrice < curPoint.PivotPrice - 3 * hAvgTimes && lowPivotQue.back() < curPoint.PivotPrice - 6 * hAvgTimes) {
+			this->preStatus = 2;
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}
+		if (limPrice > curPoint.PivotPrice + 8 * hAvgTimes && sum < 0.618 * maxsum) {
+			this->preStatus = 1;
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
 	}
 	else if (status == 2) {
 		double sum = sumCost(curVolume, tickToKlineObject.lastPrice);
-		if (sum < -2*getAvgFbVal()) {
-			double hprice = 0;
-			double lmhprice = 0;
-			bool isCon = checkmarket(Strategy::Type::high, &hprice, &lmhprice);
-			if (isCon && tickToKlineObject.lastPrice > lmhprice && tickToKlineObject.lastPrice < hprice && highPivotQue.back() > lmhprice) {
-				this->preStatus = 2;
-				this->status = 8;
-				makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
-			}
+		if (maxsum < sum) {
+			maxsum = sum;
+		}
+		if (limPrice > tickToKlineObject.lastPrice) {
+			limPrice = tickToKlineObject.lastPrice;
+		}
+		if (limPrice > curPoint.PivotPrice - lAvgTimes && tickToKlineObject.lastPrice > curPoint.PivotPrice + 2 * lAvgTimes) {
+			this->preStatus = 2;
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}
+		else if (tickToKlineObject.lastPrice > curPoint.PivotPrice + 3 * lAvgTimes && highPivotQue.back() > curPoint.PivotPrice + 6 * lAvgTimes) {
+			this->preStatus = 2;
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
+		}
+		if (limPrice < curPoint.PivotPrice - 8 * lAvgTimes&& sum < 0.618 * maxsum) {
+			this->preStatus = 2;
+			this->status = 8;
+			makeOrder(tickToKlineObject.lastPrice, THOST_FTDC_D_Sell, THOST_FTDC_OF_CloseToday, curVolume.load());
 		}
 	}
 }
