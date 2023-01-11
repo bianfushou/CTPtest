@@ -150,8 +150,6 @@ public:
 
 	virtual void operator()() override;
 
-	void improve();
-
 	void resetStatus() {
 		taskQue.clear();
 		status.store(preStatus.load());
@@ -176,7 +174,7 @@ public:
 		return status;
 	}
 
-	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume);
+	void makeOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume, double PivotPrice);
 
 	void makeClearOrder(double lastPrice, TThostFtdcDirectionType direction, TThostFtdcOffsetFlagType offsetFlag, TThostFtdcVolumeType volume) {
 		std::shared_ptr<CThostFtdcInputOrderField> orderInsertReq = std::make_shared<CThostFtdcInputOrderField>();
