@@ -1,12 +1,11 @@
 ﻿  TestStrategy.cpp
 f:\github\myfork\ctptest\src\test\teststrategy.cpp(31): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
 f:\github\myfork\ctptest\src\test\teststrategy.cpp(37): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
-f:\github\myfork\ctptest\src\test\teststrategy.cpp(299): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-f:\github\myfork\ctptest\src\test\teststrategy.cpp(313): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-  testMain.cpp
+f:\github\myfork\ctptest\src\test\teststrategy.cpp(342): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+f:\github\myfork\ctptest\src\test\teststrategy.cpp(356): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
   Generating code
-  6 of 1458 functions ( 0.4%) were compiled, the rest were copied from previous compilation.
-    1 functions were new in current compilation
-    46 functions had inline decision re-evaluated but remain unchanged
+  2 of 1459 functions ( 0.1%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   TradeTest.vcxproj -> F:\github\myfork\CTPtest\x64\Release\TradeTest.exe
