@@ -23,12 +23,32 @@ public:
 	void KLineFromLocalData(const std::string &sFilePath, const std::string &dFilePath); 
 	// 从实时数据构建k线
 	void KLineFromRealtimeData(CThostFtdcDepthMarketDataField *pDepthMarketData);
+
+	double getNewAvgPrice() {
+		double sum = 0;
+		for (double d : newPrices) {
+			sum += d;
+		}
+		return sum / newPrices.size();
+	}
+	double getNewMinPrice() {
+		auto iter = newPrices.crbegin();
+		double minP = *iter;
+		iter++;
+		for (int i = 0; i < newPrices.size() / 2; i++, iter++) {
+			if (minP > *iter) {
+				minP = *iter;
+			}
+		}
+		return minP;
+	 }
 public:
 	bool isRecord = false;
 	bool isInit = false;
 	std::vector<double> m_priceVec; // 存储5分钟的价格
 	std::vector<int> m_volumeVec; // 存储5分钟的成交量
 	std::list<KLineDataType> m_KLineDataArray;
+	std::list<double> newPrices;
 	int kData = 0;
 	std::string instrument;
 	time_t cur_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());

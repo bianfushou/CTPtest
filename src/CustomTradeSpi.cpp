@@ -76,6 +76,12 @@ void CustomTradeSpi::OnRspUserLogin(
 		session_id = pRspUserLogin->SessionID;
 		strcpy(order_ref, pRspUserLogin->MaxOrderRef);
 
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(g_pTradeInstrumentID)].get());
+		if (strategy) {
+			strategy->trade_front_id = pRspUserLogin->FrontID;
+			strategy->session_id = pRspUserLogin->SessionID;
+		}
+
 		// 投资者结算结果确认
 		if (bIsLast) {
 			reqSettlementInfoConfirm();
@@ -195,9 +201,13 @@ void CustomTradeSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommis
 		tradeLog->stringLog << "平今手续费： " << pInstrumentCommissionRate->CloseTodayRatioByVolume << std::endl;
 		tradeLog->logInfo();
 		std::string mInstrumentID(pInstrumentCommissionRate->InstrumentID);
-		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[mInstrumentID].get());
-		if (strategy) {
-			strategy->setInstrumentCommissionRate(*pInstrumentCommissionRate);
+		std::string tradeId(g_pTradeInstrumentID);
+		int id = tradeId.find(mInstrumentID);
+		if (id == 0) {
+			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[tradeId].get());
+			if (strategy) {
+				strategy->setInstrumentCommissionRate(*pInstrumentCommissionRate);
+			}
 		}
 		if (bIsLast)
 		{
@@ -255,12 +265,6 @@ void CustomTradeSpi::OnRspQryInvestorPosition(
 				if (status == 0 && step == 0) {
 				//if (step == 0) {
 					step = 1;
-				}
-				else if (status == 0 && step == 0) {
-					std::thread fatch([this]() {
-						std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-						this->reqQueryInvestorPosition();
-					});
 				}
 			}
 		}
@@ -320,7 +324,15 @@ void CustomTradeSpi::OnRspOrderInsert(
 		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pInputOrder->InstrumentID)].get());
 		if (strategy) {
 			strategy->resetStatus();
+			if (bIsLast && pRspInfo->ErrorID == 50 || pRspInfo->ErrorID == 51) {
+				if (strategy->getVolumeMatch()) {
+					strategy->setVolumeMatch(false);
+					std::this_thread::sleep_for(std::chrono::milliseconds(500));
+					this->reqQueryInvestorPosition();
+				}
+			}
 		}
+		
 	}
 }
 
@@ -349,21 +361,31 @@ void CustomTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 
 	if (isMyOrder(pOrder))
 	{
+		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pOrder->InstrumentID)].get());
 		if (isTradingOrder(pOrder))
 		{
 			tradeLog->logInfo("--->>> 等待成交中！");
+			std::string SysID(pOrder->OrderSysID);
+			strategy->OrderSysIDSet.insert(SysID);
 			//reqOrderAction(pOrder); // 这里可以撤单
 			//reqUserLogout(); // 登出测试
 		}
 		else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled)
 		{
 			
-			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pOrder->InstrumentID)].get());
-			if (strategy) {
+			
+			if (strategy && strategy->isMyOrder(pOrder->FrontID, pOrder->SessionID, pOrder->OrderRef)) {
 				strategy->resetStatus();
+				std::string SysID(pOrder->OrderSysID);
+				strategy->OrderSysIDSet.erase(SysID);
+				strategy->OrderRefSet.erase(pOrder->OrderRef);
 				tradeLog->logInfo("--->>> 撤单成功！");
 			}
 			
+		}
+		else if (strategy->isMyOrder(pOrder->FrontID, pOrder->SessionID, pOrder->OrderRef)) {
+			std::string SysID(pOrder->OrderSysID);
+			strategy->OrderSysIDSet.insert(SysID);
 		}
 			
 	}
@@ -371,27 +393,32 @@ void CustomTradeSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 
 void CustomTradeSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 {
-	tradeLog->logInfo("=====报单成功成交=====" );
+	tradeLog->logInfo("=====报单成功成交=====");
 	tradeLog->stringLog << "成交时间： " << pTrade->TradeTime << std::endl;
 	tradeLog->stringLog << "合约代码： " << pTrade->InstrumentID << std::endl;
 	tradeLog->stringLog << "成交价格： " << pTrade->Price << std::endl;
 	tradeLog->stringLog << "成交量： " << pTrade->Volume << std::endl;
 	tradeLog->stringLog << "开平仓方向： " << pTrade->Direction << std::endl;
-	tradeLog->stringLog << "开平标志: "<<pTrade->OffsetFlag << std::endl;
+	tradeLog->stringLog << "开平标志: " << pTrade->OffsetFlag << std::endl;
 	tradeLog->logInfo();
-	if (pTrade->OffsetFlag == THOST_FTDC_OF_CloseToday) {
-		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
-		if (strategy && strategy->getOpStart()) {
-			strategy->subCurVolume(pTrade->Volume, pTrade->Direction, pTrade->Price);
+	PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
+	if (strategy && strategy->isMyOrder( pTrade->OrderRef) && strategy->OrderSysIDSet.find(pTrade->OrderSysID) != strategy->OrderSysIDSet.end()){
+		strategy->canRemoveOrderSysID.push_back(pTrade->OrderSysID);
+		strategy->canRemoveOrderRef.push_back(pTrade->OrderRef);
+		if (pTrade->OffsetFlag == THOST_FTDC_OF_CloseToday) {
+			
+			if (strategy && strategy->getOpStart()) {
+				strategy->subCurVolume(pTrade->Volume, pTrade->Direction, pTrade->Price);
+			}
 		}
-	}
-	else if (pTrade->OffsetFlag == THOST_FTDC_OF_Open) {
-		PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
-		if (strategy && strategy->getOpStart()) {
-			strategy->addCurVolume(pTrade->Volume, pTrade->Direction, pTrade->Price);
-			tradeLog->logInfo("******Trade success******");
+		else if (pTrade->OffsetFlag == THOST_FTDC_OF_Open) {
+			PivotReversalStrategy* strategy = dynamic_cast<PivotReversalStrategy*>(g_StrategyMap[std::string(pTrade->InstrumentID)].get());
+			if (strategy && strategy->getOpStart()) {
+				strategy->addCurVolume(pTrade->Volume, pTrade->Direction, pTrade->Price);
+				tradeLog->logInfo("******Trade success******");
+			}
+
 		}
-		
 	}
 	
 }
